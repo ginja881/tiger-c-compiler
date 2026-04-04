@@ -30,7 +30,7 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
      	"\n \e[0;31m%s error on line %ld at position %ld \e[0m\n ",
 	error_status, 
 	line_pos,
-	char_pos
+	char_pos+1
      );
      
      fprintf(stderr, "%s\n", line + char_pos);
