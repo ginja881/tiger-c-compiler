@@ -57,7 +57,9 @@ typedef enum {
       VAR_DEC,
       TYPE_DEC,
       VAR_ASSIGN,
-      TYPE_ASSIGN
+      TYPE_ASSIGN,
+      STRING,
+      CHAR
 } token;
 
 // Raw Token Representation

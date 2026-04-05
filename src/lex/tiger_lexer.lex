@@ -7,55 +7,71 @@ void advance() {
     lexer->current_pos += yyleng;
     lexer->current_input = String(yytext);
 }
+void lexer_error() {
+     report_error(
+     	IllegalCharacter, 
+     	lexer->current_input, 
+     	lexer->current_line, 
+     	lexer->current_pos
+     );
+}
 %}
 
 digits [0-9]+
 
-
+%Start COMMENT
 %%
 
-if 			{ advance(); return IF; }
-for 			{ advance(); return FOR; }
-while 			{ advance(); return WHILE; }
-else			{ advance(); return ELSE; }
-then 			{ advance(); return THEN; }
-end			{ advance(); return END; }
-to			{ advance(); return TO; }
-in			{ advance(); return IN; }
-function		{ advance(); return FUNCTION_DEF; }
-do			{ advance(); return DO; }
-let			{ advamce(); return LET; }
-var			{ advance(); return VAR_DEC; }
-type 			{ advance(); return TYPE_DEC; }
-=			{ advance(); return TYPE_ASSIGN; }
-:=			{ advance(); return VAR_ASSIGN; }
->=			{ advance(); return GT_EQ; }
-<=			{ advance(); return LT_EQ; }
-<			{ advance(); return LT; }
->			{ advance(); return GT; }
-==			{ advance(); return COMPAR_EQ; }
-&			{ advance(); return BIT_AND; }
-&&			{ advance(); return COMPAR_AND; }
-||			{ advance(); return COMPAR_OR; }
-!			{ advance(); return NOT; }
->>			{ advance(); return BIT_LSHIFT; }
-<<			{ advance(); return BIT_RSHIFT; }
-+			{ advance(); return ADD; }
--			{ advance(); return SUB; }
-*			{ advance(); return MUL; }
-/			{ advance(); return DIV; }
-%			{ advance(); return MOD; }
-++			{ advance(); return INCREMENT; }
---			{ advance(); return DECREMENT; } 
-;			{ advance(); return SEMI_COLON; }
-:			{ advance(); return COLON; }
-(			{ advance(); return L_PAREN; }
-)			{ advance(); return R_PAREN; } 
-{			{ advance(); return L_CURLY_BRCKT; }
-}			{ advance(); return R_CURLY_BRCKT; }
-"["			{ advance(); return L_SQUARE_BRCKT; }
-"]"			{ advance(); return R_SQUARE_BRCKT; }
-null			{ advance(); return NULL_VAL; }
-"\n"			{ return NEW_LINE; }
-{digits}		{ advance(); return NUM; }
-{digits}"."{digits}	{ advance(); return REAL; }
+<INITIAL>if 			{ advance(); return IF; }
+<INITIAL>for 			{ advance(); return FOR; }
+<INITIAL>while 			{ advance(); return WHILE; }
+<INITIAL>else			{ advance(); return ELSE; }
+<INITIAL>then 			{ advance(); return THEN; }
+<INITIAL>end			{ advance(); return END; }
+<INITIAL>to			{ advance(); return TO; }
+<INITIAL>in			{ advance(); return IN; }
+<INITIAL>function		{ advance(); return FUNCTION_DEF; }
+<INITIAL>do			{ advance(); return DO; }
+<INITIAL>let			{ advamce(); return LET; }
+<INITIAL>var			{ advance(); return VAR_DEC; }
+<INITIAL>type 			{ advance(); return TYPE_DEC; }
+<INITIAL>:=			{ advance(); return VAR_ASSIGN; }
+<INITIAL>==			{ advance(); return COMPAR_EQ; }
+<INITIAL>>>			{ advance(); return BIT_LSHIFT; }
+<INITIAL><<			{ advance(); return BIT_RSHIFT; } 
+<INITIAL>>=			{ advance(); return GT_EQ; }
+<INITIAL><=			{ advance(); return LT_EQ; }
+<INITIAL>>			{ advance(); return GT; }
+<INITIAL><			{ advance(); return LT; }
+<INITIAL>= 			{ advance(); return TYPE_ASSIGN;}
+<INITIAL>&&			{ advance(); return COMPAR_AND;}
+<INITIAL>"||"			{ advance(); return COMPAR_OR;}
+<INITIAL>"|"			{ advance(); return BIT_OR;}
+<INITIAL>&			{ advance(); return BIT_AND; }
+<INITIAL>!			{ advance(); return NOT; }
+<INITIAL>"+"			{ advance(); return ADD; }
+<INITIAL>-			{ advance(); return SUB; }
+<INITIAL>"/*"			{ advance(); BEGIN COMMENT;}
+<COMMENT>"*/"			{ advance(); BEGIN INITIAL; }
+<COMMENT>.			{ advance(); }
+<INITIAL>"*"			{ advance(); return MUL; }
+<INITIAL>"/"			{ advance(); return DIV; }
+<INITIAL>%			{ advance(); return MOD; }
+<INITIAL>"++"			{ advance(); return INCREMENT; }
+<INITIAL>--			{ advance(); return DECREMENT; } 
+<INITIAL>;			{ advance(); return SEMI_COLON; }
+<INITIAL>:			{ advance(); return COLON; }
+<INITIAL>"("			{ advance(); return L_PAREN; }
+<INITIAL>")"			{ advance(); return R_PAREN; } 
+<INITIAL>"{"			{ advance(); return L_CURLY_BRCKT; }
+<INITIAL>"}"			{ advance(); return R_CURLY_BRCKT; }
+<INITIAL>"["			{ advance(); return L_SQUARE_BRCKT; }
+<INITIAL>"]"			{ advance(); return R_SQUARE_BRCKT; }
+<INITIAL>null | "NULL"		{ advance(); return NULL_VAL; }
+<INITIAL>"\n"			{ advance(); return NEW_LINE; }
+<INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
+<INITIAL>{digits}		{ advance(); return NUM; }
+<INITIAL>"\""."\""		{ advance(); return STRING; }
+<INITIAL>"\'"[a-z] | [A-Z] | [0-9]"\'" { advance(); return CHAR;}
+<INITIAL>.		        { lexer_error();}
+
