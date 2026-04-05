@@ -23,7 +23,6 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 %Start MULTI_COMMENT STRING SINGLE_COMMENT
 
 %%
-<INITIAL>identifiers		{ advance(); return ID;}
 <INITIAL>function		{ advance(); return FUNCTION_DEF; }
 <INITIAL>while			{ advance(); return WHILE; }
 <INITIAL>if			{ advance(); return IF; }
@@ -36,7 +35,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>do			{ advance(); return DO; }
 <INITIAL>var 			{ advance(); return VAR_DEC; }
 <INITIAL>type			{ advance(); return TYPE_DEC; }
-<INITIAL>EOF			{ advance(); return END_OF_FILE;}
+<INITIAL><<EOF>>		{ return END_OF_FILE;}
 <INITIAL>:=			{ advance(); return VAR_ASSIGN; }
 <INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
@@ -74,6 +73,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>"]"			{ advance(); return R_SQUARE_BRCKT; }
 <INITIAL>(null|"NULL")		{ advance(); return NULL_VAL; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
+<INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; }
 <INITIAL>"\'"[a-zA-Z0-9]"\'" { advance(); return CHAR;}
