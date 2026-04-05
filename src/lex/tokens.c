@@ -28,6 +28,7 @@ Lexer make_lexer() {
 Token peek(TokenQueue queue) {
      return queue->front;
 }
+
 int match(TokenQueue queue, token token_type) {
     return queue->front->token_type == token_type ? TRUE : FALSE;
 }

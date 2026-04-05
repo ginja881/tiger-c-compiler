@@ -2,9 +2,10 @@
 
 #include "tokens.h"
 extern Lexer lexer;
+
 void advance() {
     lexer->current_input = NULL;
-    lexer->current_pos += yyleng;
+    lexer->current_pos += yyleng;  
     lexer->current_input = String(yytext);
 }
 void lexer_error() {
@@ -18,23 +19,22 @@ void lexer_error() {
 %}
 
 digits [0-9]+
-
+identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 %Start COMMENT
 %%
-
-<INITIAL>if 			{ advance(); return IF; }
-<INITIAL>for 			{ advance(); return FOR; }
-<INITIAL>while 			{ advance(); return WHILE; }
-<INITIAL>else			{ advance(); return ELSE; }
-<INITIAL>then 			{ advance(); return THEN; }
+<INITIAL>identifiers		{ advance(); return ID;}
+<INITIAL>function		{ advance(); return FUNCTION_DEF; }
+<INITIAL>while			{ advance(); return WHILE; }
+<INITIAL>if			{ advance(); return IF; }
 <INITIAL>end			{ advance(); return END; }
 <INITIAL>to			{ advance(); return TO; }
 <INITIAL>in			{ advance(); return IN; }
-<INITIAL>function		{ advance(); return FUNCTION_DEF; }
+<INITIAL>else			{ advance(); return ELSE; }
+<INITIAL>then			{ advance(); return THEN; }
+<INITIAL>for			{ advance(); return FOR; }
 <INITIAL>do			{ advance(); return DO; }
-<INITIAL>let			{ advamce(); return LET; }
-<INITIAL>var			{ advance(); return VAR_DEC; }
-<INITIAL>type 			{ advance(); return TYPE_DEC; }
+<INITIAL>var 			{ advance(); return VAR_DEC; }
+<INITIAL>type			{ advance(); return TYPE_DEC; }
 <INITIAL>:=			{ advance(); return VAR_ASSIGN; }
 <INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
@@ -67,11 +67,10 @@ digits [0-9]+
 <INITIAL>"}"			{ advance(); return R_CURLY_BRCKT; }
 <INITIAL>"["			{ advance(); return L_SQUARE_BRCKT; }
 <INITIAL>"]"			{ advance(); return R_SQUARE_BRCKT; }
-<INITIAL>null | "NULL"		{ advance(); return NULL_VAL; }
+<INITIAL>(null|"NULL")		{ advance(); return NULL_VAL; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; }
-<INITIAL>"\""."\""		{ advance(); return STRING; }
-<INITIAL>"\'"[a-z] | [A-Z] | [0-9]"\'" { advance(); return CHAR;}
+<INITIAL>"\'"[a-zA-Z0-9]"\'" { advance(); return CHAR;}
 <INITIAL>.		        { lexer_error();}
 

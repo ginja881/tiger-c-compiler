@@ -58,7 +58,6 @@ typedef enum {
       TYPE_DEC,
       VAR_ASSIGN,
       TYPE_ASSIGN,
-      STRING,
       CHAR
 } token;
 
@@ -100,6 +99,7 @@ Lexer make_lexer();
 
 // Parser operations
 Token peek(TokenQueue queue);
+token match_keyword(string text);
 int match(TokenQueue queue, token token_type);
 
 
