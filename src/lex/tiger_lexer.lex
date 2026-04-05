@@ -6,7 +6,7 @@ extern Lexer lexer;
 void advance() {
     lexer->current_input = NULL;
     lexer->current_pos += yyleng;  
-    lexer->current_input = String(yytext);
+    lexer->current_input = String(yytext);   
 }
 void lexer_error() {
      report_error(
@@ -20,7 +20,8 @@ void lexer_error() {
 
 digits [0-9]+
 identifiers [a-zA-Z_]([a-zA-Z_0-9])*
-%Start COMMENT
+%Start MULTI_COMMENT STRING SINGLE_COMMENT
+
 %%
 <INITIAL>identifiers		{ advance(); return ID;}
 <INITIAL>function		{ advance(); return FUNCTION_DEF; }
@@ -35,6 +36,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>do			{ advance(); return DO; }
 <INITIAL>var 			{ advance(); return VAR_DEC; }
 <INITIAL>type			{ advance(); return TYPE_DEC; }
+<INITIAL>EOF			{ advance(); return END_OF_FILE;}
 <INITIAL>:=			{ advance(); return VAR_ASSIGN; }
 <INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
@@ -51,9 +53,12 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>!			{ advance(); return NOT; }
 <INITIAL>"+"			{ advance(); return ADD; }
 <INITIAL>-			{ advance(); return SUB; }
-<INITIAL>"/*"			{ advance(); BEGIN COMMENT;}
-<COMMENT>"*/"			{ advance(); BEGIN INITIAL; }
-<COMMENT>.			{ advance(); }
+<INITIAL>"/*"			{ advance(); BEGIN MULT_COMMENT;}
+<MULTI_COMMENT>"*/"			{ advance(); BEGIN INITIAL; }
+<MULTI_COMMENT>.			{ advance(); }
+<INITIAL>"//"				{ advance(); BEGIN SINGLE_COMMENT; }
+<SINGLE_COMMENT>"\n"			{ advance(); BEGIN INITIAL;}
+<SINGLE_COMMENT>.			{ advance(); }
 <INITIAL>"*"			{ advance(); return MUL; }
 <INITIAL>"/"			{ advance(); return DIV; }
 <INITIAL>%			{ advance(); return MOD; }

@@ -58,14 +58,16 @@ typedef enum {
       TYPE_DEC,
       VAR_ASSIGN,
       TYPE_ASSIGN,
-      CHAR
+      CHAR,
+      STRING,
+      INTERPOLATED_STRING,
+      END_OF_FILE
 } token;
 
 // Raw Token Representation
 struct Token_ {
      size_t line_pos;
      size_t char_pos,
-     string data;
      size_t text_size;
      token token_type;
 
@@ -87,14 +89,14 @@ struct Lexer_ {
      TokenQueue queue;
      size_t current_pos;
      size_t current_line;
-     string current_input;
+     
 };
 
 typedef struct Lexer_* Lexer;
 
 
 // Constructors
-Token make_token(size_t line_pos, size_t char_pos, string data, size_t text_size, token token_type);
+Token make_token(size_t line_pos, size_t char_pos, size_t text_size, token token_type);
 Lexer make_lexer();
 
 // Parser operations
