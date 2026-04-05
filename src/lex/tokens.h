@@ -15,12 +15,16 @@ typedef enum {
       GT_EQ,
       LT, 
       LT_EQ,
+      NOT
       COMPAR_EQ,
-      BIT_NOT,
+      COMPAR_AND,
+      COMPAR_OR,
       BIT_AND,
       BIT_RSHIFT,
       BIT_LSHIFT,
       BIT_OR,
+      INCREMENT,
+      DECREMENT,
       // Control Flow statements
       FOR,
       TO,
@@ -34,7 +38,7 @@ typedef enum {
       END,
       LET,
       // Expressions
-      NIL,
+      NULL_VAL,
       ID,
       REAL,
       NUM,
@@ -43,18 +47,17 @@ typedef enum {
       COLON,
       L_PAREN,
       R_PAREN,
+      NEW_LINE,
       // BRCKT = BRACKET
       L_CURLY_BRCKT,
       R_CURLY_BRCKT,
       L_SQUARE_BRCKT,
-      R_SQUARE_BRRCK,
+      R_SQUARE_BRCKT,
       // Vars and Types
       VAR_DEC,
       TYPE_DEC,
       VAR_ASSIGN,
       TYPE_ASSIGN
-
-
 } token;
 
 // Raw Token Representation
@@ -83,6 +86,7 @@ struct Lexer_ {
      TokenQueue queue;
      size_t current_pos;
      size_t current_line;
+     string current_input;
 };
 
 typedef struct Lexer_* Lexer;
