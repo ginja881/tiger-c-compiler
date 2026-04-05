@@ -5,7 +5,8 @@ extern Lexer lexer;
 
 void advance() {
     lexer->current_input = NULL;
-    lexer->current_pos += yyleng;  
+    lexer->current_pos += yyleng;
+    lexer->current_input_size =yyleng;
     lexer->current_input = String(yytext);   
 }
 void lexer_error() {

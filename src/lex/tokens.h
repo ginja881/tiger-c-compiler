@@ -2,7 +2,7 @@
 #define __TOKENS_H__
 
 
-#include "utils.h"
+#include "util.h"
 
 // Main Enum for Tokens
 typedef enum {
@@ -15,7 +15,7 @@ typedef enum {
       GT_EQ,
       LT, 
       LT_EQ,
-      NOT
+      NOT,
       COMPAR_EQ,
       COMPAR_AND,
       COMPAR_OR,
@@ -67,8 +67,9 @@ typedef enum {
 // Raw Token Representation
 struct Token_ {
      size_t line_pos;
-     size_t char_pos,
+     size_t char_pos;
      size_t text_size;
+     string input;
      token token_type;
 
      struct Token_* next;
@@ -78,6 +79,7 @@ typedef struct Token_* Token;
 // TokenQueue as classic data structure for parsing
 struct TokenQueue_ {
       size_t size;
+      
       Token front;    
       Token tail;
 };
@@ -89,14 +91,15 @@ struct Lexer_ {
      TokenQueue queue;
      size_t current_pos;
      size_t current_line;
-     
+     size_t current_input_size;
+     string current_input;
 };
 
 typedef struct Lexer_* Lexer;
 
 
 // Constructors
-Token make_token(size_t line_pos, size_t char_pos, size_t text_size, token token_type);
+Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type);
 Lexer make_lexer();
 
 // Parser operations

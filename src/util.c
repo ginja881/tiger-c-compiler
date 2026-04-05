@@ -4,7 +4,11 @@
 string String(char* text) {
     return strdup(text);
 }
-
+void* checked_malloc(size_t bytes) {
+      void* new_data = malloc(bytes);
+      assert(new_data);
+      return new_data;
+}
 void report_error(error_code error, string line, size_t line_pos, size_t char_pos) {
      /*
       * @brief error output

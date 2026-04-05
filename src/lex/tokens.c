@@ -1,10 +1,11 @@
 #include "tokens.h"
 
-Token make_token(size_t line_pos, size_t char_pos, size_t text_size, token token_type) {
+Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type) {
       Token new_token = (Token)checked_malloc(sizeof(struct Token_));
       new_token->line_pos = line_pos;
       new_token->char_pos = char_pos;
       new_token->text_size = text_size;
+      new_token->input = input;
       new_token->token_type = token_type;
       
       return new_token;
