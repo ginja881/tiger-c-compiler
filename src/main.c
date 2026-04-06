@@ -6,8 +6,8 @@
 #include "util.h"
 #include "lex/tokens.h"
 
-extern FILE* yylin;
-extern Lexer lexer;
+extern FILE* yyin;
+Lexer lexer;
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -19,7 +19,8 @@ int main(int argc, char** argv) {
     
     lexer = make_lexer();
     int token;
-   
+    yyin = fopen(file_name, "r");
+
     while ((token = yylex()) != -1) {
          if (token == NEW_LINE) {
 	     lexer->current_line++;
@@ -31,12 +32,15 @@ int main(int argc, char** argv) {
 	 	lexer->current_line, 
 	 	lexer->current_pos,
 	       	lexer->current_input_size,
-		lexer->current_input,
+		String(lexer->current_input),
                 token
 	 );
+	 printf("\nACTUAL MEMORY:%s\n", lexer->current_input);
 	 enqueue_token(lexer->queue, new_token);
-
+         printf("\n RECOGNIZED TOKEN\n");
 	 if (new_token->token_type == END_OF_FILE)
 	    break;
-    }                           
+    }
+    printf("\n DONE\n");
+    return EXIT_SUCCESS;
 }

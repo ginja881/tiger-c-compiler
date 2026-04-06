@@ -9,6 +9,7 @@ typedef enum {
       // Operations
       MUL,
       ADD,
+      DIV,
       MOD,
       SUB,
       GT,
@@ -59,6 +60,7 @@ typedef enum {
       VAR_ASSIGN,
       TYPE_ASSIGN,
       CHAR,
+      COMMA,
       STRING,
       INTERPOLATED_STRING,
       END_OF_FILE
@@ -92,7 +94,8 @@ struct Lexer_ {
      size_t current_pos;
      size_t current_line;
      size_t current_input_size;
-     string current_input;
+     char* current_input;
+     char* overall_line;
 };
 
 typedef struct Lexer_* Lexer;
@@ -106,8 +109,8 @@ Lexer make_lexer();
 Token peek(TokenQueue queue);
 token match_keyword(string text);
 int match(TokenQueue queue, token token_type);
-
-
+int yylex(void);
+int yywrap(void); 
 // Dynamic operations
 Token dequeue_token(TokenQueue queue);
 TokenQueue enqueue_token(TokenQueue queue, Token token);

@@ -19,16 +19,19 @@ Lexer make_lexer() {
 
        lexer->queue->size = 0;
 
-       lexer->current_pos = 0;
+       lexer->current_pos = 1;
        lexer->current_line = 1;
-
+       lexer->current_input_size = 0;
+       lexer->current_input = "";
        return lexer;
 }
 
 Token peek(TokenQueue queue) {
      return queue->front;
 }
-
+int yywrap(void) {
+    return 1;
+}
 int match(TokenQueue queue, token token_type) {
     return queue->front->token_type == token_type ? TRUE : FALSE;
 }

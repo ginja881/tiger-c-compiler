@@ -28,7 +28,7 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 	        error_status = "(Syntax Error)";
 		break;
      }
-
+     printf("\n---------------------------\n");
      fprintf(
         stderr,
      	"\n \e[0;31m%s error on line %ld at position %ld \e[0m\n ",
@@ -43,5 +43,5 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
         putc('-', stderr);
 
      fprintf(stderr, "^\n");
-     
+     _Exit(-1);
 }
