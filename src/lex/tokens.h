@@ -62,7 +62,7 @@ typedef enum {
       CHAR,
       COMMA,
       STRING,
-      INTERPOLATED_STRING,
+      MEMBER_REF,
       END_OF_FILE
 } token;
 

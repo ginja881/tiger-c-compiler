@@ -77,7 +77,6 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>"]"			{ advance(); return R_SQUARE_BRCKT; }
 <INITIAL>(nil|NIL)		{ advance(); return NULL_VAL; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
-<INITIAL>({identifiers}"."{identifiers})+	{ advance(); return ID;}
 <INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; } 
@@ -99,5 +98,6 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 				}
 <INITIAL>\'[^\\n]{1}\' 		{ advance(); return CHAR;}
 <INITIAL>(" "|"\t")+		{ advance(); }
+<INITIAL>"."			{ advance(); return MEMBER_REF;}
 <INITIAL>.		        { lexer_error();}
  
