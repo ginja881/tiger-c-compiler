@@ -95,7 +95,6 @@ struct Lexer_ {
      size_t current_line;
      size_t current_input_size;
      char* current_input;
-     char* overall_line;
 };
 
 typedef struct Lexer_* Lexer;
