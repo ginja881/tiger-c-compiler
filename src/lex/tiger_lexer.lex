@@ -1,4 +1,4 @@
-%{ 
+%{
 
 #include "tokens.h"
 extern Lexer lexer;
@@ -76,6 +76,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>"["			{ advance(); return L_SQUARE_BRCKT; }
 <INITIAL>"]"			{ advance(); return R_SQUARE_BRCKT; }
 <INITIAL>(nil|NIL)		{ advance(); return NULL_VAL; }
+<INITIAL>"\t"			{ advance(); return TAB; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
 <INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
@@ -97,7 +98,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 					return STRING;
 				}
 <INITIAL>\'[^\\n]{1}\' 		{ advance(); return CHAR;}
-<INITIAL>(" "|"\t")+		{ advance(); }
+<INITIAL>(" ")+			{ advance(); }
 <INITIAL>"."			{ advance(); return MEMBER_REF;}
 <INITIAL>.		        { lexer_error();}
  

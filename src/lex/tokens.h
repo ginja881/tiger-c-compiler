@@ -48,6 +48,7 @@ typedef enum {
       COLON,
       L_PAREN,
       R_PAREN,
+      TAB, 
       NEW_LINE,
       // BRCKT = BRACKET
       L_CURLY_BRCKT,

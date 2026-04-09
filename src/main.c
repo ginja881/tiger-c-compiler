@@ -35,9 +35,7 @@ int main(int argc, char** argv) {
 		String(lexer->current_input),
                 token
 	 );
-	 printf("\nACTUAL MEMORY:%s\n", lexer->current_input);
-	 enqueue_token(lexer->queue, new_token);
-         printf("\n RECOGNIZED TOKEN\n");
+	 enqueue_token(token->queue, new_token);
 	 if (new_token->token_type == END_OF_FILE)
 	    break;
     }

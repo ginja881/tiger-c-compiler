@@ -1,5 +1,6 @@
 SHELL = /bin/bash
 CC = gcc
+LEXICAL_GENERATOR = lex
 CFLAGS = -fPIC -g -Wall -Wno-unused-function -Wextra -Werror
 LINKED_LIBRARIES = -lm 
 SRC_DIR = src
@@ -14,6 +15,10 @@ $(BUILD_DIR)/compiler: $(SRC_DIR)/main.c
 	@if [ ! -d $(BUILD_DIR) ]; \
 		then mkdir -p $(BUILD_DIR); \
 	fi
+	@echo Updating lexical specification.....
+	@$(LEXICAL_GENERATOR) -o $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tiger_lexer.lex
+	@echo Done!!
+
 	@$(CC) $(CFLAGS) -I$(SRC_DIR) $(UTIL) $(OVERALL_DEPENDENCIES) $(LINKED_LIBRARIES) $(SRC_DIR)/main.c -o $@
 	@echo Build done! Executable at $@
 
