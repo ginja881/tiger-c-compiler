@@ -6,6 +6,7 @@ LINKED_LIBRARIES = -lm
 SRC_DIR = src
 TEST_DIR = tests
 BUILD_DIR = build
+LOG_DIR = logs
 
 UTIL = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 LEXICAL_DEPENDENCIES = $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tokens.c
@@ -23,8 +24,9 @@ $(BUILD_DIR)/compiler: $(SRC_DIR)/main.c
 	@echo Build done! Executable at $@
 
 $(BUILD_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/%.c
-	@if [ ! -d $(BUILD_DIR)/$(TEST_DIR) ]; \
-		then mkdir -p $(BUILD_DIR)/$(TEST_DIR); \
+	@if [ ! -d $(BUILD_DIR)/$(TEST_DIR) ]; then \
+		mkdir -p $(BUILD_DIR)/$(TEST_DIR); \
+		mkdir -p $(BUILD_DIR); \
 	fi;
 	@$(CC) $(CFLAGS) -I$(SRC_DIR) $(UTIL) $(OVERALL_DEPENDENCIES) $(LINKED_LIBRARIES) $< -o $@
 	@echo Build done! Test at $@

@@ -22,11 +22,7 @@ int main(int argc, char** argv) {
     yyin = fopen(file_name, "r");
 
     while ((token = yylex()) != -1) {
-         if (token == NEW_LINE) {
-	     lexer->current_line++;
-	     lexer->current_pos = 0;
-	     continue;
-	 }
+        
 	 
          Token new_token =  make_token(
 	 	lexer->current_line, 
@@ -36,7 +32,11 @@ int main(int argc, char** argv) {
                 token
 	 );
 	 enqueue_token(token->queue, new_token);
-	 if (new_token->token_type == END_OF_FILE)
+         if (new_token->token_type == NEW_LINE) {
+	 	lexer->current_line++;
+		lexer->current_pos = 0;
+	 }
+	 else if (new_token->token_type == END_OF_FILE)
 	    break;
     }
     printf("\n DONE\n");
