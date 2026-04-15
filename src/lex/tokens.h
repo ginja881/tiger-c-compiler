@@ -17,6 +17,7 @@ typedef enum {
       LT, 
       LT_EQ,
       NOT,
+      COMPAR_NOT_EQ,
       COMPAR_EQ,
       COMPAR_AND,
       COMPAR_OR,
@@ -43,6 +44,9 @@ typedef enum {
       ID,
       REAL,
       NUM,
+      TRUE,
+      FALSE,
+      NIL,
       // Useful punctuation used for parsing/reporting errors that the LEXER should report
       SEMI_COLON,
       COLON,

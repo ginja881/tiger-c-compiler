@@ -40,6 +40,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>type			{ advance(); return TYPE_DEC; }
 <INITIAL><<EOF>>		{ return END_OF_FILE;}
 <INITIAL>:=			{ advance(); return VAR_ASSIGN; }
+<INITIAL>!=			{ advance(); return COMPAR_NOT_EQ;}
 <INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
 <INITIAL><<			{ advance(); return BIT_RSHIFT; } 
@@ -78,6 +79,8 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>(nil|NIL)		{ advance(); return NULL_VAL; }
 <INITIAL>"\t"			{ advance(); return TAB; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
+<INITIAL>true|TRUE		{ advance(); return TRUE;}
+<INITIAL>false|FALSE		{ advance(); return FALSE;}
 <INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; } 
