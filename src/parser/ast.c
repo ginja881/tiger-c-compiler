@@ -173,6 +173,49 @@ A_Field make_record(A_FieldList field_list, A_Pos position) {
 	return new_record;
 }
 
+A_Dec make_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
+	A_Dec new_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+	new_var_dec->kind = Var_Dec;
+	new_var_dec->position = position;
+
+	new_var_dec->u.var_dec.type_field = type_field;
+	new_var_dec->u.var_dec.val = var_val;
+	
+	return new_var_dec;
+}
+
+A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position) {
+	A_Dec new_type_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+	new_type_dec->kind = Type_Dec;
+	new_type_dec->position = position;
+
+	new_type_dec->u.type_dec.type_field = type_field;
+	new_type_dec->u.type_dec.def_type_field = def_type_field;
+        
+	return new_type_dec;
+
+}
+
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Stm block, A_Pos position) {
+	A_Dec new_func_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+	new_func_dec->kind = Func_Dec;
+	new_func_dec->position = position;
+
+	new_func_dec->u.func_dec.name = strdup(name);
+	new_func_dec->u.func_dec.args = args;
+	new_func_dec->u.func_dec.type = strdup(type);
+	new_func_dec->u.func_dec.block = block;
+
+	return new_func_dec;
+}
+
+A_DecList make_dec_List(A_Dec declaration) {
+	A_DecList new_dec_list = (A_DecList)checked_malloc(sizeof(struct A_DecList_));
+	new_dec_list->dec = declaration;
+	new_dec_list->next = NULL;
+	return new_dec_list;
+}
+
 A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position) {
 	A_Stm new_while_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_while_stm->kind = While_Stm;
@@ -191,8 +234,8 @@ A_Stm make_if_chain(int conditional_type, A_Exp cond, A_Stm block, A_Pos positio
 	new_if_chain->position = position;
 
 	new_if_chain->u.if_chain.condition = cond;
-	new_if_chain->u.if_chain.cond_block = block;
-	new_if_chain->u.if_chain.next_cond = NULL;
+	new_if_chain->u.if_chain.then_block = block;
+	new_if_chain->u.if_chain.else_branch = NULL;
 
 	return new_if_chain;
 }
@@ -220,24 +263,13 @@ A_Stm make_var_dec(A_Field field, A_Exp var_val, A_Pos position) {
 	return new_var_dec;
 }
 
-A_Stm make_function_dec(string id, A_Stm block, A_FieldList args, string result, A_Pos position) {
-	A_Stm function_dec = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	function_dec->kind = Func_Dec;
-	function_dec->position = position;
 
-	function_dec->u.function_dec.id = strdup(id);
-	function_dec->u.function_dec.block = block;
-	function_dec->u.function_dec.args = args;
-        function_dec->u.function_dec.result = strdup(result);
-	return function_dec;
-}
-
-A_Stm make_assign_stm(A_Exp id_exp, A_Exp exp) {
+A_Stm make_assign_stm(string id, A_Exp exp) {
 	A_Stm new_assign_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_assign_stm->kind = Assign_Stm;
 	new_assign_stm->position = id_exp->position;
 
-	new_assign_stm->u.assign_stm.id_exp = id_exp;
+	new_assign_stm->u.assign_stm.id = strdup(id);
 	new_assign_stm->u.assign_stm.exp = exp;
 
         return new_assign_stm;
@@ -253,12 +285,12 @@ A_Stm make_expression_stm(A_Exp exp) {
 	return new_expression_stm;
 }
 
-A_Stm make_for_stm(A_Exp id, A_Exp low, A_Exp high, A_Stm block, A_Pos position) {
+A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Stm block, A_Pos position) {
 	A_Stm new_for_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_for_stm->kind = For_Stm;
 	new_for_stm->position = position;
 
-	new_for_stm->u.for_stm.id = id;
+	new_for_stm->u.for_stm.id = strdup(id);
 	new_for_stm->u.for_stm.low = low;
 	new_for_stm->u.for_stm.high = high;
 	new_for_stm->u.for_stm.block = block;
@@ -284,7 +316,7 @@ A_StmList make_stm_list(A_Stm stm) {
 	return new_stm_list;
 }
 
-A_Stm make_let_stm(A_StmList dec_stms, A_Stm block, A_Pos position) {
+A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position) {
 	A_Stm new_let_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_let_stm->kind = Let_Stm;
 	new_let_stm->position = position;

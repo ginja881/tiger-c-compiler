@@ -95,7 +95,7 @@ struct A_ExpList_ {
        struct A_ExpList_* next;
 };
 
-
+// Fields
 struct A_Field_ {
      enum {
          Subscript_Field,
@@ -116,33 +116,47 @@ struct A_FieldList_ {
 };
 
 
+// Decs
+
+struct A_Dec_ {
+	enum {
+	    Type_Dec,
+	    Var_Dec,
+	    Func_Dec
+	} kind;
+	A_Pos position;
+	union {
+		struct {struct A_Field_* type_field; struct A_Field_* def_type_field} type_dec;
+		struct {struct A_Field_* type_field; struct A_Exp_* val;} var_dec;
+		struct {string name; struct A_FieldList_* args; string type; struct A_Stm_* block;} func_dec;
+	} u;
+};
+
+struct A_DecList_ {
+	struct A_Dec_* dec;
+	struct A_DecList_* next;
+};
+
 // Statements
 struct A_Stm_ {
 	enum {
 		While_Stm, 
 		For_Stm, 
 		If_Stm,
-		Var_Dec,
-		Type_Dec,
 		Assign_Stm,
 		Exp_Stm,
-		Type_Dec,
 		Let_Stm,
-		Compound_Stm,
-		Func_Dec
+		Compound_Stm
 	} kind;
 	A_Pos position;
         union {
 	    struct {struct A_Exp_* while_cond; struct A_Stm_* block;} while_stm;
-	    struct {struct A_Exp_* condition; struct A_Stm_* cond_block; struct A_Stm_* next_cond;} if_chain;
+	    struct {struct A_Exp_* condition; struct A_Stm_* then_block; struct A_Stm_* else_branch;} if_chain;
 	    struct {struct A_Stm_* stm1; struct A_Stm_* stm2;} compound_stm;
-	    struct {struct A_Exp_* id_exp; struct A_Exp_* exp;} assign_stm; 
+	    struct {string id; struct A_Exp_* exp;} assign_stm; 
 	    struct {struct A_Exp_* exp;}  expression_stm;
-	    struct {struct A_Field_* field; struct A_Exp_* var_val;} variable_dec;
-	    struct {struct A_Field_* field; struct A_Field def_field;} type_dec;
-	    struct {struct A_StmList_* dec_stms; struct A_Stm_* body;} let_stm;
-	    struct {A_Exp id; struct A_Stm_* block; struct A_FieldList_* args; string result;} function_dec;
-	    struct {A_Exp id; struct A_Exp_* low; struct A_Exp_* high; struct A_Stm_* block;} for_stm;
+	    struct {struct A_DecList_* decs; struct A_Stm_* body;} let_stm;
+	    struct {string id; struct A_Exp_* low; struct A_Exp_* high; struct A_Stm_* block;} for_stm;
 	} u;
 };
 
@@ -164,8 +178,11 @@ typedef struct Parser_* Parser;
 typedef struct A_Exp_* A_Exp;
 typedef struct A_ExpList_* A_ExpList;
 typedef struct A_Stm_* A_Stm;
-typedef struct  A_Field_* A_Field;
+typedef struct A_Field_* A_Field;
 typedef struct A_FieldList_* A_FieldList;
+typedef struct A_Dec_* A_Dec;
+typedef struct A_DecList_* A_DecList;
+
 typedef struct A_StmList_* A_StmList;
 
 // Constructors
@@ -192,19 +209,21 @@ A_Field make_type_field(string id, string type, A_Pos position);
 A_FieldList make_field_list(A_Field field);
 A_Field make_record(A_FieldList field_list, A_Pos position);
 
+A_Dec make_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position);
+A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position);
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Stm block, A_Pos position);
+A_DecList make_dec_list(A_Dec declaration);
 
 
 A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position);
 A_Stm make_if_chain(A_Exp cond, A_Stm block, A_Pos position);
 A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2);
-A_Stm make_variable_dec(A_Field field, A_Exp var_val, A_Pos position);
 A_Stm make_function_dec(A_Exp id, A_Stm block, A_FieldList args, string result, A_Pos position);
-A_Stm make_assign_stm(A_Exp id_exp, A_Exp exp);
+A_Stm make_assign_stm(string id, A_Exp exp);
 A_Stm make_expression_stm(A_Exp exp);
-A_Stm make_for_stm(A_Exp id, A_Exp low, A_Exp high, A_Stm block, A_Pos position);
-A_Stm make_type_dec(A_Field field, A_Field def_field, A_Pos position);
+A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Stm block, A_Pos position);
 A_StmList make_stm_list(A_Stm stm);
-A_Stm make_let_stm(A_StmList dec_stms, A_Stm block, A_Pos position);
+A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position);
 
 
 // Parsing functions that implement recursive descent clauses
