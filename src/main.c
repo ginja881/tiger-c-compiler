@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
 		String(lexer->current_input),
                 token
 	 );
-	 enqueue_token(token->queue, new_token);
+	 enqueue_token(lexer->queue, new_token);
          if (new_token->token_type == NEW_LINE) {
 	 	lexer->current_line++;
 		lexer->current_pos = 0;

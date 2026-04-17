@@ -27,6 +27,12 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 	 case SyntaxError:
 	        error_status = "(Syntax Error)";
 		break;
+	 case IndentError:
+	 	error_status = "(Indentation Error)";
+		break;
+	 case TypeError:
+	 	error_status = "(Type Error)";
+		break;
      }
      printf("\n---------------------------\n");
      fprintf(

@@ -1,6 +1,7 @@
 SHELL = /bin/bash
 CC = gcc
 LEXICAL_GENERATOR = lex
+LEAK_CHECKER = valgrind
 CFLAGS = -fPIC -g -Wall -Wno-unused-function -Wextra -Werror
 LINKED_LIBRARIES = -lm 
 SRC_DIR = src
@@ -36,3 +37,6 @@ clean:
 		then rm -r $(BUILD_DIR); \
 	fi;
 	@echo CLEANED
+
+debug: $(BUILD_DIR)/compiler
+	@valgrind --leak-check=ful --show-leak-kinds=all $<  $(TEST_DIR)/source_files/merge.tig

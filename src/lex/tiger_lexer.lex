@@ -79,8 +79,8 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>(nil|NIL)		{ advance(); return NULL_VAL; }
 <INITIAL>"\t"			{ advance(); return TAB; }
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
-<INITIAL>true|TRUE		{ advance(); return TRUE;}
-<INITIAL>false|FALSE		{ advance(); return FALSE;}
+<INITIAL>true			{ advance(); return TRUE_VAL;}
+<INITIAL>false			{ advance(); return FALSE_VAL;}
 <INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; } 

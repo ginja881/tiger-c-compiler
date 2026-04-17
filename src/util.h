@@ -10,10 +10,19 @@
 #define FALSE 0
 #define DEFAULT_LINES_CAPACITY 100
 
+#define min(X, Y) ((X) < (Y) ? (X) : (Y))
+#define max(X, Y) ((X) > (Y) ? (X) : (Y))
+
+
 typedef enum {
      IllegalCharacter,
-     SyntaxError
+     SyntaxError,
+     TypeError,
+     IndentError
 } error_code;
+
+
+
 
 typedef const char* string;
 

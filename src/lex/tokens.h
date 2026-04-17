@@ -44,8 +44,8 @@ typedef enum {
       ID,
       REAL,
       NUM,
-      TRUE,
-      FALSE,
+      TRUE_VAL,
+      FALSE_VAL,
       NIL,
       // Useful punctuation used for parsing/reporting errors that the LEXER should report
       SEMI_COLON,

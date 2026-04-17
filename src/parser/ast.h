@@ -27,6 +27,28 @@ typedef enum {
      OP_OR,
      OP_MEMBER_REF
 } A_Op;
+#define OP_MATCH \
+	X(ADD, OP_ADD) \
+	X(SUB, OP_SUB) \
+	X(MUL, OP_MUL) \
+	X(DIV, OP_DIV) \
+	X(MOD, OP_MOD) \
+	X(INCREMENT, OP_INCREMENT) \
+	X(DECREMENT, OP_DECREMENT) \
+	X(NOT, OP_NOT) \
+	X(BIT_AND, OP_AND) \
+	X(BIT_OR, OP_OR) \
+	X(BIT_LSHIFT, OP_LSHIFT) \
+	X(BIT_RSHIFT, OP_RSHIFT) \
+	X(GT, OP_GT) \
+	X(LT, OP_LT) \
+	X(GT_EQ, OP_GT_EQ) \
+	X(LT_EQ, OP_LT_EQ) \
+	X(COMPAR_AND, OP_COMPAR_AND) \
+	X(COMPAR_OR, OP_COMPAR_OR) \
+	X(COMPAR_EQ, OP_COMPAR_EQ) \
+	X(COMPAR_NOT_EQ, OP_COMPAR_NOT_EQ) \
+	X(MEMBER_REF, OP_MEMBER_REF)
 
 // Lexer data
 struct A_Pos_ {
@@ -47,11 +69,14 @@ struct A_Exp_ {
 	Callee_Exp,
 	Bool_Exp,
 	Char_Exp,
-	String_Exp
+	Array_Exp,
+	String_Exp,
+	Break_Exp,
+	Ref_Exp
      } kind;
      A_Pos position;
      union {
-     	struct {string identifier; string type_id;} id_exp;
+     	struct {string identifier;} id_exp;
 	struct {int value;} num_exp;
 	struct {double value;} real_exp;
 	struct {int boolean;} bool_exp;
@@ -59,6 +84,8 @@ struct A_Exp_ {
 	struct {string function_name; struct A_ExpList_* args;} callee_exp;	
 	struct {string text;} string_exp;
 	struct {char character;} char_exp;
+	struct {string type; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
+	struct {struct A_ExpList_* refs;} ref_exp;
      } u;
 };
 
@@ -68,15 +95,35 @@ struct A_ExpList_ {
        struct A_ExpList_* next;
 };
 
+
+struct A_Field_ {
+     enum {
+         Subscript_Field,
+	 Ty_Field,
+	 Record
+     } kind;
+     A_Pos position;
+     union {
+          struct {string id; struct A_Exp_* loc;} subscript_field;
+	  struct {string id; string type;} ty_field;
+	  struct {struct A_FieldList_* record_def_fields;} record_field;
+     } u;
+};
+
+struct A_FieldList_ {
+    struct A_Field_* field;
+    struct A_FieldList_* next;
+};
+
+
 // Statements
 struct A_Stm_ {
 	enum {
 		While_Stm, 
 		For_Stm, 
 		If_Stm,
-		Else_Stm.
-		Elif_Stm,
 		Var_Dec,
+		Type_Dec,
 		Assign_Stm,
 		Exp_Stm,
 		Type_Dec,
@@ -91,9 +138,17 @@ struct A_Stm_ {
 	    struct {struct A_Stm_* stm1; struct A_Stm_* stm2;} compound_stm;
 	    struct {struct A_Exp_* id_exp; struct A_Exp_* exp;} assign_stm; 
 	    struct {struct A_Exp_* exp;}  expression_stm;
-	    struct {string id; struct A_Exp_* var_val;} variable_dec;
-	    struct {string id; struct A_Stm_* block; struct A_ExpList_* args;} function_dec;
+	    struct {struct A_Field_* field; struct A_Exp_* var_val;} variable_dec;
+	    struct {struct A_Field_* field; struct A_Field def_field;} type_dec;
+	    struct {struct A_StmList_* dec_stms; struct A_Stm_* body;} let_stm;
+	    struct {A_Exp id; struct A_Stm_* block; struct A_FieldList_* args; string result;} function_dec;
+	    struct {A_Exp id; struct A_Exp_* low; struct A_Exp_* high; struct A_Stm_* block;} for_stm;
 	} u;
+};
+
+struct A_StmList_ {
+    struct A_Stm_* stm;
+    struct A_StmList_* next;
 };
 
 // Parser object for the overall phase & semantic analysis
@@ -109,36 +164,52 @@ typedef struct Parser_* Parser;
 typedef struct A_Exp_* A_Exp;
 typedef struct A_ExpList_* A_ExpList;
 typedef struct A_Stm_* A_Stm;
-
+typedef struct  A_Field_* A_Field;
+typedef struct A_FieldList_* A_FieldList;
+typedef struct A_StmList_* A_StmList;
 
 // Constructors
 Parser make_parser(void);
 
 A_Pos make_pos(size_t col_pos, size_t line_pos, size_t indentation_level);
 
-A_Exp make_id_exp(string id, string type_id, A_Pos position);
+A_Exp make_id_exp(string id, A_Pos position);
 A_Exp make_num_exp(int num, A_Pos position);
 A_Exp make_real_exp(double value, A_Pos position);
 A_Exp make_nil_exp(A_Pos position);
 A_Exp make_bool_exp(int boolean, A_Pos position);
 A_Exp make_char_exp(char character, A_Pos position);
 A_Exp make_string_exp(string text, A_Pos position);
+A_Exp make_break_exp(A_Pos position);
 
 A_ExpList make_exp_list(A_Exp exp);
 A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2);
 A_Exp make_callee_exp(string function_name, A_ExpList args, A_Pos position);
+A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position);
+
+A_Field make_subscript_field(string id, A_Exp loc, A_Pos position);
+A_Field make_type_field(string id, string type, A_Pos position);
+A_FieldList make_field_list(A_Field field);
+A_Field make_record(A_FieldList field_list, A_Pos position);
+
+
 
 A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position);
 A_Stm make_if_chain(A_Exp cond, A_Stm block, A_Pos position);
 A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2);
-A_Stm make_variable_dec(string id, A_Exp var_val, A_Pos position);
-A_Stm make_function_dec(stirng id, A_Stm block, A_ExpList args, A_Pos position);
+A_Stm make_variable_dec(A_Field field, A_Exp var_val, A_Pos position);
+A_Stm make_function_dec(A_Exp id, A_Stm block, A_FieldList args, string result, A_Pos position);
 A_Stm make_assign_stm(A_Exp id_exp, A_Exp exp);
 A_Stm make_expression_stm(A_Exp exp);
+A_Stm make_for_stm(A_Exp id, A_Exp low, A_Exp high, A_Stm block, A_Pos position);
+A_Stm make_type_dec(A_Field field, A_Field def_field, A_Pos position);
+A_StmList make_stm_list(A_Stm stm);
+A_Stm make_let_stm(A_StmList dec_stms, A_Stm block, A_Pos position);
+
 
 // Parsing functions that implement recursive descent clauses
 
-A_Op match_op(token operation);
+A_Op match_op(token operation); 
 
 A_ExpList parse_exp_list(Lexer lexer, Parser parser);
 
