@@ -913,7 +913,7 @@ case YY_STATE_EOF(INITIAL):
 case 13:
 YY_RULE_SETUP
 #line 42 "tiger_lexer.lex"
-{ advance(); return VAR_ASSIGN; }
+{ advance(); return DEF_ASSIGN; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
@@ -958,7 +958,7 @@ YY_RULE_SETUP
 case 22:
 YY_RULE_SETUP
 #line 51 "tiger_lexer.lex"
-{ advance(); return TYPE_ASSIGN;}
+{ advance(); return ASSIGN;}
 	YY_BREAK
 case 23:
 YY_RULE_SETUP

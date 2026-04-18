@@ -179,6 +179,7 @@ struct A_StmList_ {
 struct Parser_ {
      struct A_Stm_* root;
      int is_in_block;
+     int current_stm;
      size_t current_indentation_level;
 };
 
@@ -243,7 +244,7 @@ A_Stm make_dec_stm(A_Dec declaration);
 
 A_Op match_op(Token operation); 
 
-size_t indentation_count(Lexer lexer, Parser parser);
+void handle_indentation(Lexer lexer, Parser parser);
 
 A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
 A_Field parse_field(Lexer lexer, Parser parser);

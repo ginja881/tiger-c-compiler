@@ -62,8 +62,8 @@ typedef enum {
       // Vars and Types
       VAR_DEC,
       TYPE_DEC,
-      VAR_ASSIGN,
-      TYPE_ASSIGN,
+      DEF_ASSIGN,
+      ASSIGN,
       CHAR,
       COMMA,
       STRING,

@@ -6,6 +6,7 @@ Parser make_parser(void) {
       new_parser->root = NULL;
       new_parser->current_indentation_level = 0;
       new_parser->is_in_block = 0;
+      new_parser->current_stm = -1;
       return new_parser;
 }
 
@@ -265,8 +266,6 @@ A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2) {
 	return new_compound_stm;
 }
 
-
-
 A_Stm make_assign_stm(string id, A_Exp exp, A_Pos pos) {
 	A_Stm new_assign_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_assign_stm->kind = Assign_Stm;
@@ -352,18 +351,19 @@ A_Op match_op(Token operation) {
       
       return OP_INVALID;
 }
-size_t handle_indentation(Lexer lexer, Parser parser) {
+void handle_indentation(Lexer lexer, Parser parser) {
         size_t indentation = 0;
-	Token current_token = peek(lexer->queue);
+	Token first = peek(lexer->queue);
+	Token current_token = first;
 	while (match(current_token, TAB) == TRUE) {
 		indentation++;
 		eat_token(lexer->queue);
 		current_token = peek(lexer->queue);
 	}
 	if (indentation < parser->current_indentation_level)
-		report_error(IndentError, "fuck", peek(lexer->queue)->line_pos, peek(lexer->queue)->char_pos);
+		report_error(IndentError, "fuck", first->line_pos, first->char_pos);
 
-	return indentation;
+	
 }
 A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 	A_Exp current_exp = parse_expression(lexer, parser);
@@ -518,21 +518,53 @@ A_Exp parse_expression(Lexer lexer, Parser parser) {
 }
 
 A_Stm parse_stm(Lexer lexer, Parser parser) {
- 	
-	printf("\n Parsing expression\n");
-        A_Exp exp = parse_expression(lexer, parser);
-	printf("\n Parsed Expression\n");
-	return make_expression_stm(exp);
+ 	Token current_token = peek(lexer->queue);
+	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos, parser->current_indentation_level);
+
+	if (match(current_token, BREAK) == TRUE) {
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+		if (
+		match(current_token, SEMI_COLON) == FALSE && 
+		match(current_token, NEW_LINE) == FALSE && 
+		(parser->current_stm != For_Stm  && parser->current_stm != While_Stm)) {
+			report_error(
+				SyntaxError,
+				current_token->input, 
+				current_token->line_pos,
+				current_token->char_pos
+			);
+		}
+	
+		eat_token(lexer->queue);
+                return make_break_stm(position);
+	}
+	else if (match(current_token, ID) == TRUE && match(current_token->next, ASSIGN) == TRUE) {
+		string id = current_token->input;
+		eat_token(lexer->queue);
+		eat_token(lexer->queue);
+		A_Exp val_exp = parse_expression(lexer, parser);
+                return make_assign_stm(id, val_exp, position);
+	}
+	return make_expression_stm(parse_expression(lexer, parser));
 }
 
 A_Stm parse_program(Lexer lexer, Parser parser) {
         A_Stm root = NULL;
 	while (match(peek(lexer->queue), END_OF_FILE) == FALSE) {
-	   if (match(peek(lexer->queue), NEW_LINE) == TRUE) {
+	   
+	   if (match(peek(lexer->queue), NEW_LINE) == TRUE || 
+	   match(peek(lexer->queue), TAB) == TRUE) {
 	   	eat_token(lexer->queue);
 	   	continue;
 	   }
+
+	   handle_indentation(lexer, parser);
+
 	   A_Stm parsed_stm = parse_stm(lexer, parser);
+	   parser->current_indentation_level = 0;
+	   parser->current_stm = -1;
+
 	   printf("\n Parsed Statement\n");
 	   if (match(peek(lexer->queue), NEW_LINE) == TRUE || match(peek(lexer->queue), SEMI_COLON) == TRUE)
 	   	eat_token(lexer->queue);
