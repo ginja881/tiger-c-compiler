@@ -55,7 +55,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>"|"			{ advance(); return BIT_OR;}
 <INITIAL>&			{ advance(); return BIT_AND; }
 <INITIAL>!			{ advance(); return NOT; }
-<INITIAL>\+			{ advance(); return ADD; }
+<INITIAL>"+"			{ advance(); return ADD; }
 <INITIAL>-			{ advance(); return SUB; }
 <INITIAL>"/*"			{ advance(); BEGIN MULTI_COMMENT;}
 <MULTI_COMMENT>"*/"		{ advance(); BEGIN INITIAL; }

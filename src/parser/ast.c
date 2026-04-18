@@ -345,26 +345,38 @@ A_Stm make_declaration_stm(A_Dec dec) {
 }
 A_Op match_op(Token operation) {
       #define X(input_token, op) \
-      if (operation->token_type == input_token) \
-      	return op; \
-	OP_MATCH;
+        if (operation->token_type == input_token) return op; 
+	OP_MATCH
       #undef X
 
-      report_error(SyntaxError, "Fuck", operation->line_pos, operation->char_pos);
+      
       return OP_INVALID;
+}
+size_t handle_indentation(Lexer lexer, Parser parser) {
+        size_t indentation = 0;
+	Token current_token = peek(lexer->queue);
+	while (match(current_token, TAB) == TRUE) {
+		indentation++;
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+	}
+	if (indentation < parser->current_indentation_level)
+		report_error(IndentError, "fuck", peek(lexer->queue)->line_pos, peek(lexer->queue)->char_pos);
+
+	return indentation;
 }
 A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 	A_Exp current_exp = parse_expression(lexer, parser);
-	A_ExpList exp_list = make_exp_list(current_exp);
+	
+	A_ExpList head = make_exp_list(current_exp);
+	A_ExpList exp_list = head;
 
 	while (match(peek(lexer->queue), delimiter) == TRUE) {
 		eat_token(lexer->queue);
 		exp_list->next = make_exp_list(parse_expression(lexer, parser));
-		if (match(peek(lexer->queue), delimiter) == FALSE) {
-			report_error(SyntaxError, "Fuck", peek(lexer->queue)->line_pos, peek(lexer->queue)->char_pos);
-		}
+		exp_list = exp_list->next;
 	}
-	return exp_list;
+	return head;
 }
 A_Exp parse_unary(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
@@ -405,6 +417,7 @@ A_Exp parse_unary(Lexer lexer, Parser parser) {
 			eat_token(lexer->queue);
 			eat_token(lexer->queue);
 			A_ExpList arguments = parse_explist(lexer, parser, COMMA);
+			current_token = peek(lexer->queue);
 			if (match(current_token, R_PAREN) == FALSE) {
 				report_error(
 					SyntaxError,
@@ -415,6 +428,39 @@ A_Exp parse_unary(Lexer lexer, Parser parser) {
 			}
 			eat_token(lexer->queue);
 			current_exp = make_callee_exp(function_name, arguments, position);
+			printf("\n recognized callee\n");
+		}
+		else if (match(current_token->next, L_SQUARE_BRCKT) == TRUE) {
+			string array_type = current_token->input;
+			eat_token(lexer->queue);
+			eat_token(lexer->queue);
+
+			A_Exp size = parse_expression(lexer, parser);
+			current_token = peek(lexer->queue);
+			if (match(current_token, R_SQUARE_BRCKT) == FALSE) {
+				report_error(
+					SyntaxError,
+					current_token->input,
+					current_token->line_pos,
+					current_token->char_pos
+				);
+			}
+                        eat_token(lexer->queue);
+			current_token = peek(lexer->queue);
+			if (match(current_token, OF) == FALSE) {
+				report_error(
+					SyntaxError,
+					current_token->input,
+                                        current_token->line_pos,
+					current_token->char_pos
+				);
+			}
+			eat_token(lexer->queue);
+                        current_token = peek(lexer->queue);
+			A_Exp init = parse_expression(lexer, parser);
+                        
+			current_exp = make_array_exp(array_type, size, init, position);
+
 		}
 		else {
 			current_exp = make_id_exp(current_token->input, position);
@@ -425,10 +471,12 @@ A_Exp parse_unary(Lexer lexer, Parser parser) {
 }
 
 A_Exp parse_factor(Lexer lexer, Parser parser) {
-	A_Exp left = parse_expression(lexer, parser);
+	A_Exp left = parse_unary(lexer, parser);
 
 	A_Op op = match_op(peek(lexer->queue));
-	while (op == OP_ADD || op == OP_SUB || op == OP_OR || op == OP_LSHIFT || op == OP_RSHIFT || op == OP_OR || op == OP_COMPAR_OR || op == OP_COMPAR_EQ) {
+	while (op != OP_INVALID && 
+		(op == OP_ADD || op == OP_SUB || op == OP_OR || op == OP_LSHIFT || 
+		op == OP_RSHIFT || op == OP_OR || op == OP_COMPAR_OR || op == OP_COMPAR_EQ)) {
 		eat_token(lexer->queue);
 		A_Exp right = parse_unary(lexer, parser);
 		left = make_op_exp(op, left, right);
@@ -438,17 +486,20 @@ A_Exp parse_factor(Lexer lexer, Parser parser) {
 }
 
 A_Exp parse_term(Lexer lexer, Parser parser) {
-	A_Exp left = parse_expression(lexer, parser);
+	A_Exp left = parse_factor(lexer, parser);
 
 	A_Op op = match_op(peek(lexer->queue));
-	
-	while (op == OP_MUL || op == OP_MOD ||  op == OP_DIV || op == OP_AND || op == OP_COMPAR_AND)	{
+	printf("\n Found Op\n");
+	while (op != OP_INVALID && (op == OP_MUL || op == OP_MOD ||  
+	op == OP_DIV || op == OP_AND || op == OP_COMPAR_AND))	{
 	     eat_token(lexer->queue);
+	     printf("\n Parsing term\n");
 	     A_Exp right = parse_factor(lexer, parser);
 	     left = make_op_exp(op, left, right);
 	     op = match_op(peek(lexer->queue));
 		
 	}
+	printf("\n parsed term\n");
 	return left;
 }
 A_Exp parse_expression(Lexer lexer, Parser parser) {
@@ -468,19 +519,30 @@ A_Exp parse_expression(Lexer lexer, Parser parser) {
 
 A_Stm parse_stm(Lexer lexer, Parser parser) {
  	
-
+	printf("\n Parsing expression\n");
         A_Exp exp = parse_expression(lexer, parser);
+	printf("\n Parsed Expression\n");
 	return make_expression_stm(exp);
 }
 
-void parse_program(Lexer lexer, Parser parser) {
-
+A_Stm parse_program(Lexer lexer, Parser parser) {
+        A_Stm root = NULL;
 	while (match(peek(lexer->queue), END_OF_FILE) == FALSE) {
+	   if (match(peek(lexer->queue), NEW_LINE) == TRUE) {
+	   	eat_token(lexer->queue);
+	   	continue;
+	   }
 	   A_Stm parsed_stm = parse_stm(lexer, parser);
+	   printf("\n Parsed Statement\n");
 	   if (match(peek(lexer->queue), NEW_LINE) == TRUE || match(peek(lexer->queue), SEMI_COLON) == TRUE)
 	   	eat_token(lexer->queue);
-           parser->root = make_compound_stm(parsed_stm, parser->root);
+
+	   if (root == NULL)
+	   	root = parsed_stm;
+	   else
+           	root = make_compound_stm(root, parsed_stm);
 
 	}
+	return root;
 
 }

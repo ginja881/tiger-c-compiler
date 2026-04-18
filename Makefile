@@ -2,7 +2,7 @@ SHELL = /bin/bash
 CC = gcc
 LEXICAL_GENERATOR = lex
 LEAK_CHECKER = valgrind
-CFLAGS = -fPIC -g -Wall -Wno-unused-function -Wextra -Werror
+CFLAGS = -fPIC -g -Wall -Wno-unused-function -Wno-unused-parameter -Wextra -Werror
 LINKED_LIBRARIES = -lm 
 SRC_DIR = src
 TEST_DIR = tests
@@ -39,5 +39,5 @@ clean:
 	fi;
 	@echo CLEANED
 
-debug: $(BUILD_DIR)/compiler
-	@valgrind --leak-check=ful --show-leak-kinds=all $<  $(TEST_DIR)/source_files/merge.tig
+debug-parser: $(BUILD_DIR)/$(TEST_DIR)/test_parser.o
+	@valgrind --leak-check=full --show-leak-kinds=all $<  $(TEST_DIR)/source_files/merge.tig

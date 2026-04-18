@@ -243,6 +243,8 @@ A_Stm make_dec_stm(A_Dec declaration);
 
 A_Op match_op(Token operation); 
 
+size_t indentation_count(Lexer lexer, Parser parser);
+
 A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
 A_Field parse_field(Lexer lexer, Parser parser);
 A_Exp parse_unary(Lexer lexer, Parser parser);
@@ -256,7 +258,7 @@ A_Stm parse_stm_list(Lexer lexer, Parser parser);
 A_Stm parse_if_chain(Lexer lexer, Parser parser);
 
 A_Stm parse_block(Lexer lexer, Parser parser);
-void parse_program(Lexer lexer, Parser parser);
+A_Stm parse_program(Lexer lexer, Parser parser);
 
 
 #endif
