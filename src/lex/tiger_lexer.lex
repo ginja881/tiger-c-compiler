@@ -81,6 +81,8 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>"\n"			{ advance(); return NEW_LINE; }
 <INITIAL>true			{ advance(); return TRUE_VAL;}
 <INITIAL>false			{ advance(); return FALSE_VAL;}
+<INITIAL>break			{ advance(); return BREAK;}
+<INITIAL>of			{ advance(); return OF;}
 <INITIAL>{identifiers}		{ advance(); return ID; }
 <INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; } 

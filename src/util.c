@@ -9,6 +9,7 @@ void* checked_malloc(size_t bytes) {
       assert(new_data);
       return new_data;
 }
+
 void report_error(error_code error, string line, size_t line_pos, size_t char_pos) {
      /*
       * @brief error output
@@ -43,7 +44,7 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 	char_pos+1
      );
      
-     fprintf(stderr, "%s\n", line + char_pos);
+     fprintf(stderr, "%s\n", line);
 
      for (size_t i = 0; i < char_pos; i++)
         putc('-', stderr);

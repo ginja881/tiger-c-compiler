@@ -25,7 +25,8 @@ typedef enum {
      OP_NOT,
      OP_AND,
      OP_OR,
-     OP_MEMBER_REF
+     OP_MEMBER_REF,
+     OP_INVALID
 } A_Op;
 #define OP_MATCH \
 	X(ADD, OP_ADD) \
@@ -52,8 +53,8 @@ typedef enum {
 
 // Lexer data
 struct A_Pos_ {
-     size_t start_col;
-     size_t line_loc;
+     size_t col_pos;
+     size_t line_pos;
      size_t indentation_level;
 };
 typedef struct A_Pos_* A_Pos;
@@ -71,8 +72,9 @@ struct A_Exp_ {
 	Char_Exp,
 	Array_Exp,
 	String_Exp,
-	Break_Exp,
-	Ref_Exp
+	Ref_Exp,
+	Field_Exp,
+	Unary_Exp
      } kind;
      A_Pos position;
      union {
@@ -80,11 +82,13 @@ struct A_Exp_ {
 	struct {int value;} num_exp;
 	struct {double value;} real_exp;
 	struct {int boolean;} bool_exp;
+	struct {A_Op op; struct A_Exp_* exp;} unary_exp;
 	struct {A_Op op; struct A_Exp_* exp1; struct A_Exp_* exp2;} op_exp;
 	struct {string function_name; struct A_ExpList_* args;} callee_exp;	
 	struct {string text;} string_exp;
 	struct {char character;} char_exp;
 	struct {string type; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
+        struct {struct A_Field_* field;} field_exp;
 	struct {struct A_ExpList_* refs;} ref_exp;
      } u;
 };
@@ -126,7 +130,7 @@ struct A_Dec_ {
 	} kind;
 	A_Pos position;
 	union {
-		struct {struct A_Field_* type_field; struct A_Field_* def_type_field} type_dec;
+		struct {struct A_Field_* type_field; struct A_Field_* def_type_field;} type_dec;
 		struct {struct A_Field_* type_field; struct A_Exp_* val;} var_dec;
 		struct {string name; struct A_FieldList_* args; string type; struct A_Stm_* block;} func_dec;
 	} u;
@@ -146,6 +150,9 @@ struct A_Stm_ {
 		Assign_Stm,
 		Exp_Stm,
 		Let_Stm,
+		Break_Stm,
+		Return_Stm,
+		Decl_Stm,
 		Compound_Stm
 	} kind;
 	A_Pos position;
@@ -155,8 +162,10 @@ struct A_Stm_ {
 	    struct {struct A_Stm_* stm1; struct A_Stm_* stm2;} compound_stm;
 	    struct {string id; struct A_Exp_* exp;} assign_stm; 
 	    struct {struct A_Exp_* exp;}  expression_stm;
-	    struct {struct A_DecList_* decs; struct A_Stm_* body;} let_stm;
+	    struct {struct A_DecList_* dec_stms; struct A_Stm_* block;} let_stm;
 	    struct {string id; struct A_Exp_* low; struct A_Exp_* high; struct A_Stm_* block;} for_stm;
+	    struct {struct A_Exp_* exit_status;} return_stm;
+	    struct {struct A_Dec_* dec;} decl_stm;
 	} u;
 };
 
@@ -168,7 +177,7 @@ struct A_StmList_ {
 // Parser object for the overall phase & semantic analysis
 
 struct Parser_ {
-     A_Stm root;
+     struct A_Stm_* root;
      int is_in_block;
      size_t current_indentation_level;
 };
@@ -197,47 +206,57 @@ A_Exp make_nil_exp(A_Pos position);
 A_Exp make_bool_exp(int boolean, A_Pos position);
 A_Exp make_char_exp(char character, A_Pos position);
 A_Exp make_string_exp(string text, A_Pos position);
-A_Exp make_break_exp(A_Pos position);
+
 
 A_ExpList make_exp_list(A_Exp exp);
 A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2);
 A_Exp make_callee_exp(string function_name, A_ExpList args, A_Pos position);
 A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position);
+A_Exp make_unary_exp(A_Op op, A_Exp exp, A_Pos position);
 
 A_Field make_subscript_field(string id, A_Exp loc, A_Pos position);
 A_Field make_type_field(string id, string type, A_Pos position);
 A_FieldList make_field_list(A_Field field);
 A_Field make_record(A_FieldList field_list, A_Pos position);
+A_Exp make_field_exp(A_Field field);
 
 A_Dec make_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position);
-A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position);
+A_Dec make_type_dec(A_Field field, A_Field def_field, A_Pos position);
 A_Dec make_func_dec(string name, A_FieldList args, string type, A_Stm block, A_Pos position);
 A_DecList make_dec_list(A_Dec declaration);
 
 
 A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position);
-A_Stm make_if_chain(A_Exp cond, A_Stm block, A_Pos position);
+A_Stm make_if_chain(A_Exp cond, A_Stm then_block, A_Pos position);
 A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2);
 A_Stm make_function_dec(A_Exp id, A_Stm block, A_FieldList args, string result, A_Pos position);
-A_Stm make_assign_stm(string id, A_Exp exp);
+A_Stm make_assign_stm(string id, A_Exp exp, A_Pos pos);
 A_Stm make_expression_stm(A_Exp exp);
 A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Stm block, A_Pos position);
 A_StmList make_stm_list(A_Stm stm);
 A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position);
-
+A_Stm make_break_stm(A_Pos position);
+A_Stm make_return_stm(A_Exp exit_status, A_Pos position);
+A_Stm make_dec_stm(A_Dec declaration);
 
 // Parsing functions that implement recursive descent clauses
 
-A_Op match_op(token operation); 
+A_Op match_op(Token operation); 
 
-A_ExpList parse_exp_list(Lexer lexer, Parser parser);
+A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
+A_Field parse_field(Lexer lexer, Parser parser);
+A_Exp parse_unary(Lexer lexer, Parser parser);
+A_Exp parse_factor(Lexer lexer, Parser parser);
+A_Exp parse_term(Lexer lexer, Parser parser);
+A_Exp parse_expression(Lexer lexer, Parser parser);
 
 A_Stm parse_statement(Lexer lexer, Parser parser);
+
+A_Stm parse_stm_list(Lexer lexer, Parser parser);
 A_Stm parse_if_chain(Lexer lexer, Parser parser);
 
 A_Stm parse_block(Lexer lexer, Parser parser);
-A_Exp parse_exp(Lexer lexer, Parser parser);
-A_Stm parse_program(Lexer lexer, Parser parser);
+void parse_program(Lexer lexer, Parser parser);
 
 
 #endif

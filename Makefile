@@ -11,9 +11,10 @@ LOG_DIR = logs
 
 UTIL = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 LEXICAL_DEPENDENCIES = $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tokens.c
-OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES)
+PARSER_DEPENDENCIES =  $(SRC_DIR)/parser/ast.c
+OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(PARSER_DEPENDENCIES)
 
-$(BUILD_DIR)/compiler: $(SRC_DIR)/main.c 
+$(BUILD_DIR)/compiler: $(OVERALL_DEPENDENCIES) $(SRC_DIR)/main.c 
 	@if [ ! -d $(BUILD_DIR) ]; \
 		then mkdir -p $(BUILD_DIR); \
 	fi

@@ -68,6 +68,8 @@ typedef enum {
       COMMA,
       STRING,
       MEMBER_REF,
+      BREAK,
+      OF,
       END_OF_FILE
 } token;
 
@@ -112,11 +114,11 @@ Lexer make_lexer();
 // Parser operations
 Token peek(TokenQueue queue);
 token match_keyword(string text);
-int match(TokenQueue queue, token token_type);
+int match(Token input_token, token token_type);
 int yylex(void);
 int yywrap(void); 
 // Dynamic operations
-Token dequeue_token(TokenQueue queue);
+Token eat_token(TokenQueue queue);
 TokenQueue enqueue_token(TokenQueue queue, Token token);
 
 

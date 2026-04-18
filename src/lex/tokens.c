@@ -32,8 +32,8 @@ Token peek(TokenQueue queue) {
 int yywrap(void) {
     return 1;
 }
-int match(TokenQueue queue, token token_type) {
-    return queue->front->token_type == token_type ? TRUE : FALSE;
+int match(Token input_token, token token_type) {
+    return input_token->token_type == token_type ? TRUE : FALSE;
 }
 
 TokenQueue enqueue_token(TokenQueue queue, Token token) {
@@ -50,7 +50,7 @@ TokenQueue enqueue_token(TokenQueue queue, Token token) {
      
 }
 
-Token dequeue_token(TokenQueue queue) {
+Token eat_token(TokenQueue queue) {
       if (queue->size == 0) {
            return NULL;
       }

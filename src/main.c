@@ -5,6 +5,8 @@
 
 #include "util.h"
 #include "lex/tokens.h"
+#include "parser/ast.h"
+
 
 extern FILE* yyin;
 Lexer lexer;
@@ -39,6 +41,9 @@ int main(int argc, char** argv) {
 	 else if (new_token->token_type == END_OF_FILE)
 	    break;
     }
+    Parser parser = make_parser();
+    parse_program(lexer, parser); 
+
     printf("\n DONE\n");
     return EXIT_SUCCESS;
 }
