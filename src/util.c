@@ -10,7 +10,7 @@ void* checked_malloc(size_t bytes) {
       return new_data;
 }
 
-void report_error(error_code error, string line, size_t line_pos, size_t char_pos) {
+void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg) {
      /*
       * @brief error output
       * @param error error code
@@ -43,7 +43,10 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 	line_pos,
 	char_pos+1
      );
-     
+     printf(" %s \n", error_msg);
+
+     printf("---------------------------\n");
+ 
      fprintf(stderr, "%s\n", line);
 
      for (size_t i = 0; i < char_pos; i++)

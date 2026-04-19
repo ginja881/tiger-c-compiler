@@ -82,9 +82,9 @@ struct A_Exp_ {
 	struct {int value;} num_exp;
 	struct {double value;} real_exp;
 	struct {int boolean;} bool_exp;
-	struct {A_Op op; struct A_Exp_* exp;} unary_exp;
+	struct {A_Op op; struct A_Exp_* exp; int postfix;} unary_exp;
 	struct {A_Op op; struct A_Exp_* exp1; struct A_Exp_* exp2;} op_exp;
-	struct {string function_name; struct A_ExpList_* args;} callee_exp;	
+	struct {A_Exp id_exp; struct A_ExpList_* args;} callee_exp;	
 	struct {string text;} string_exp;
 	struct {char character;} char_exp;
 	struct {string type; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
@@ -108,8 +108,8 @@ struct A_Field_ {
      } kind;
      A_Pos position;
      union {
-          struct {string id; struct A_Exp_* loc;} subscript_field;
-	  struct {string id; string type;} ty_field;
+          struct {A_Exp id_exp; struct A_Exp_* loc;} subscript_field;
+	  struct {A_Exp id; A_Exp type;} ty_field;
 	  struct {struct A_FieldList_* record_def_fields;} record_field;
      } u;
 };
@@ -211,12 +211,12 @@ A_Exp make_string_exp(string text, A_Pos position);
 
 A_ExpList make_exp_list(A_Exp exp);
 A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2);
-A_Exp make_callee_exp(string function_name, A_ExpList args, A_Pos position);
+A_Exp make_callee_exp(A_Exp id_exp, A_ExpList args);
 A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position);
 A_Exp make_unary_exp(A_Op op, A_Exp exp, A_Pos position);
 
-A_Field make_subscript_field(string id, A_Exp loc, A_Pos position);
-A_Field make_type_field(string id, string type, A_Pos position);
+A_Field make_subscript_field(A_Exp id_exp, A_Exp loc);
+A_Field make_type_field(A_Exp id, A_Exp type);
 A_FieldList make_field_list(A_Field field);
 A_Field make_record(A_FieldList field_list, A_Pos position);
 A_Exp make_field_exp(A_Field field);
@@ -238,7 +238,7 @@ A_StmList make_stm_list(A_Stm stm);
 A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position);
 A_Stm make_break_stm(A_Pos position);
 A_Stm make_return_stm(A_Exp exit_status, A_Pos position);
-A_Stm make_dec_stm(A_Dec declaration);
+A_Stm make_declaration_stm(A_Dec declaration);
 
 // Parsing functions that implement recursive descent clauses
 
@@ -246,8 +246,11 @@ A_Op match_op(Token operation);
 
 void handle_indentation(Lexer lexer, Parser parser);
 
+A_FieldList parse_field_list(Lexer lexer, Parser parser, token delimiter);
+A_DecList parse_dec_list(Lexer lexer, Parser parser, token delimiter);
 A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
-A_Field parse_field(Lexer lexer, Parser parser);
+
+A_Exp parse_primary(Lexer lexer, Parser parser);
 A_Exp parse_unary(Lexer lexer, Parser parser);
 A_Exp parse_factor(Lexer lexer, Parser parser);
 A_Exp parse_term(Lexer lexer, Parser parser);

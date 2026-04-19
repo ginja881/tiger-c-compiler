@@ -13,7 +13,8 @@ void lexer_error() {
      	IllegalCharacter, 
      	lexer->current_input, 
      	lexer->current_line, 
-     	lexer->current_pos
+     	lexer->current_pos,
+	"Unrecognized character"
      );
 }
 // Helpers for strings
@@ -39,7 +40,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>var 			{ advance(); return VAR_DEC; }
 <INITIAL>type			{ advance(); return TYPE_DEC; }
 <INITIAL><<EOF>>		{ return END_OF_FILE;}
-<INITIAL>:=			{ advance(); return DEF_ASSIGN; }
+<INITIAL>:=			{ advance(); return ASSIGN; }
 <INITIAL>!=			{ advance(); return COMPAR_NOT_EQ;}
 <INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
@@ -48,7 +49,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL><=			{ advance(); return LT_EQ; }
 <INITIAL>>			{ advance(); return GT; }
 <INITIAL><			{ advance(); return LT; }
-<INITIAL>= 			{ advance(); return ASSIGN;}
+<INITIAL>= 			{ advance(); return EQ;}
 <INITIAL>,			{ advance(); return COMMA;}
 <INITIAL>&&			{ advance(); return COMPAR_AND;}
 <INITIAL>"||"			{ advance(); return COMPAR_OR;}

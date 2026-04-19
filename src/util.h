@@ -30,7 +30,7 @@ typedef const char* string;
 
 string String(char* text);
 void* checked_malloc(size_t bytes);
-void report_error(error_code error, string line, size_t line_pos, size_t char_pos);
+void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg);
 
 /*
 char** make_line_array(void);

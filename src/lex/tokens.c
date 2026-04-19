@@ -33,6 +33,8 @@ int yywrap(void) {
     return 1;
 }
 int match(Token input_token, token token_type) {
+    if (input_token == NULL)
+    	return FALSE;
     return input_token->token_type == token_type ? TRUE : FALSE;
 }
 
