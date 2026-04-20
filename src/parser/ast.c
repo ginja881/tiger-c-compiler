@@ -80,7 +80,7 @@ A_Exp make_string_exp(string text, A_Pos position) {
 	new_string_exp->kind = String_Exp;
 	new_string_exp->position = position;
 
-	new_string_exp->u.string_exp.text = text;
+	new_string_exp->u.string_exp.text = strdup(text);
 
 	return new_string_exp;
 }
@@ -93,13 +93,14 @@ A_ExpList make_exp_list(A_Exp exp) {
 	return new_exp_list;
 }
 
-A_Exp make_unary_exp(A_Op op, A_Exp exp, A_Pos position) {
+A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position) {
 	A_Exp new_unary_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 	new_unary_exp->kind = Unary_Exp;
 	new_unary_exp->position = position;
 
 	new_unary_exp->u.unary_exp.op = op;
 	new_unary_exp->u.unary_exp.exp = exp;
+	new_unary_exp->u.unary_exp.postfix = post_fix;
 
 	return new_unary_exp;
 
@@ -116,12 +117,12 @@ A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2) {
 	return new_op_exp;
 }
 
-A_Exp make_callee_exp(A_Exp id_exp, A_ExpList args) {
+A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position) {
 	A_Exp callee_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 	callee_exp->kind = Callee_Exp;
-	callee_exp->position = id_exp->position;
+	callee_exp->position = position;
 
-	callee_exp->u.callee_exp.id_exp = id_exp;
+	callee_exp->u.callee_exp.id = strdup(id);
 	callee_exp->u.callee_exp.args = args;
 
 	return callee_exp;
@@ -139,36 +140,35 @@ A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position) {
 	return new_array_exp;
 }
 
-A_Exp make_unary_exp(A_Op op, A_Exp exp, int postfix A_Pos position) {
-	A_Exp new_unary_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
-	new_unary_exp->kind = Unary_Exp;
-	new_unary_exp->position = position;
 
-	new_unary_exp->u.unary_exp.op = op;
-	new_unary_exp->u.unary_exp.exp = exp;
-	new_unary_exp->u.unary_exp.postfix = postfix;
+A_Exp make_stm_list_exp(A_StmList stm_list) {
+	A_Exp new_stm_list_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_stm_list_exp->kind = StmList_Exp;
+	new_stm_list_exp->position = stm_list->stm->position;
 
-	return new_unary_exp;
+	new_stm_list_exp->u.stm_list.list = stm_list;
+
+	return new_stm_list_exp;
 }
 
-A_Field make_subscript_field(A_Exp id_exp, A_Exp loc) {
+A_Field make_subscript_field(string id, A_Exp loc, A_Pos position) {
 	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
 	new_field->kind = Subscript_Field;
-	new_field->position = id_exp->position;
+	new_field->position = position;
 
-	new_field->u.subscript_field.id_exp = id_exp;
+	new_field->u.subscript_field.id = strdup(id);
 	new_field->u.subscript_field.loc = loc;
 	
 	return new_field;
 }
 
-A_Field make_type_field(A_Exp id, A_Exp type) {
+A_Field make_type_field(string id,  string type, A_Pos position) {
 	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
 	new_field->kind = Ty_Field;
-	new_field->position = id->position;
+	new_field->position = position;
 
-	new_field->u.ty_field.id = id;
-	new_field->u.ty_field.type = type;
+	new_field->u.ty_field.id = strdup(id);
+	new_field->u.ty_field.type = strdup(type);
 	return new_field;
 }
 
@@ -198,17 +198,27 @@ A_Exp make_field_exp(A_Field field) {
 }
 
 
-A_Dec make_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
-	A_Dec new_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
-	new_var_dec->kind = Var_Dec;
-	new_var_dec->position = position;
+A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position) {
+	A_Dec new_simple_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+	new_simple_var_dec->kind = Simple_Var_Dec;
+	new_simple_var_dec->position = position;
 
-	new_var_dec->u.var_dec.type_field = type_field;
-	new_var_dec->u.var_dec.val = var_val;
-	
-	return new_var_dec;
+	new_simple_var_dec->u.simple_var_dec.id = strdup(id);
+	new_simple_var_dec->u.simple_var_dec.val = var_val;
+
+	return new_simple_var_dec;
+
 }
+A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
+	A_Dec new_field_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+	new_field_var_dec->kind = Field_Var_Dec;
+	new_field_var_dec->position = position;
 
+	new_field_var_dec->u.field_var_dec.field = type_field;
+	new_field_var_dec->u.field_var_dec.val = var_val;
+
+	return new_field_var_dec;
+}
 A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position) {
 	A_Dec new_type_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
 	new_type_dec->kind = Type_Dec;
@@ -221,7 +231,7 @@ A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position) 
 
 }
 
-A_Dec make_func_dec(string name, A_FieldList args, string type, A_Stm block, A_Pos position) {
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position) {
 	A_Dec new_func_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
 	new_func_dec->kind = Func_Dec;
 	new_func_dec->position = position;
@@ -241,7 +251,7 @@ A_DecList make_dec_List(A_Dec declaration) {
 	return new_dec_list;
 }
 
-A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position) {
+A_Stm make_while_stm(A_Exp while_cond, A_Exp block, A_Pos position) {
 	A_Stm new_while_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_while_stm->kind = While_Stm;
 	new_while_stm->position = position;
@@ -252,7 +262,7 @@ A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position) {
 	return new_while_stm;
 }
 
-A_Stm make_if_chain(A_Exp cond, A_Stm then_block, A_Pos position) {
+A_Stm make_if_stm(A_Exp cond, A_Exp then_block, A_StmList else_if_branch, A_Exp else_branch, A_Pos position) {
 	A_Stm new_if_chain = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 
 	new_if_chain->kind = If_Stm;
@@ -260,7 +270,8 @@ A_Stm make_if_chain(A_Exp cond, A_Stm then_block, A_Pos position) {
 
 	new_if_chain->u.if_chain.condition = cond;
 	new_if_chain->u.if_chain.then_block = then_block;
-	new_if_chain->u.if_chain.else_branch = NULL;
+	new_if_chain->u.if_chain.else_if_branch = else_if_branch;
+	new_if_chain->u.if_chain.else_branch = else_branch;
 
 	return new_if_chain;
 }
@@ -298,7 +309,7 @@ A_Stm make_expression_stm(A_Exp exp) {
 	return new_expression_stm;
 }
 
-A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Stm block, A_Pos position) {
+A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Exp block, A_Pos position) {
 	A_Stm new_for_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_for_stm->kind = For_Stm;
 	new_for_stm->position = position;
@@ -319,7 +330,7 @@ A_StmList make_stm_list(A_Stm stm) {
 	return new_stm_list;
 }
 
-A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position) {
+A_Stm make_let_stm(A_DecList dec_stms, A_Exp block, A_Pos position) {
 	A_Stm new_let_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_let_stm->kind = Let_Stm;
 	new_let_stm->position = position;
@@ -329,13 +340,7 @@ A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position) {
 
 	return new_let_stm;
 }
-A_Stm make_break_stm(A_Pos position) {
-	A_Stm new_break_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_break_stm->kind = Break_Stm;
-	new_break_stm->position = position;
 
-	return new_break_stm;
-}
 A_Stm make_return_stm(A_Exp exit_status, A_Pos position) {
 	A_Stm new_return_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_return_stm->kind = Return_Stm;
@@ -392,13 +397,14 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 A_FieldList parse_fieldlist(Lexer lexer, Parser parser, token delimiter) {
 	A_Exp field_exp = parse_postfix(lexer, parser);
 	
-	if (field_exp->kind != Field_Exp) {
-		
-	}
 
-	A_FieldList head = ;
+	A_FieldList head = make_field_list(field_exp->u.field_exp.field);
 	A_FieldList field_list = head;
 	while (match(peek(lexer->queue), delimiter) == TRUE) {
+		eat_token(lexer->queue);
+		A_Exp field_exp = parse_postfix(lexer, parser);
+		field_list->next = make_field_list(field_exp->u.field_exp.field);
+		field_list = field_list->next;
 		
 	}
 
@@ -468,7 +474,7 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
                      
 			A_Exp init = parse_expression(lexer, parser);
 
-			current_expression = make_array_exp(array_type, size, init, position);
+			current_exp = make_array_exp(array_type, size, init, position);
 	}
 	else if (match(current_token, L_CURLY_BRCKT) == TRUE) {
 		eat_token(lexer->queue);
@@ -478,7 +484,7 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 			report_error(
 				SyntaxError,
 				current_token->input,
-				current_token->current_token->line_pos,
+				current_token->line_pos,
 				current_token->char_pos,
 				"Must close record with }"
 			);
@@ -487,7 +493,7 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 		eat_token(lexer->queue);
 
 		current_exp = make_field_exp(
-			make_record(field_list, position);
+			make_record(field_list, position)
 		);
 	
 	}
@@ -504,15 +510,28 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 }
 A_Exp parse_unary(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
-	A_Exp current_exp = NULL;
-        A_Op
-	if (match(c
+	A_Op operation = match_op(current_token);
+	eat_token(lexer->queue);
+	A_Exp current_exp = parse_primary(lexer, parser);
+	if (operation == OP_INCREMENT || operation == OP_DECREMENT || operation == OP_NOT)
+	      current_exp = make_unary_exp(operation, current_exp, FALSE, current_exp->position);
+	return current_exp;
 }
 A_Exp parse_postfix(Lexer lexer, Parser parser) {
 	A_Exp left = parse_unary(lexer, parser);
 	Token current_token = peek(lexer->queue);
         A_Exp current_exp = left;
-        if (left->kind == ID_Exp) {
+
+	if (match(current_token, INCREMENT) == TRUE) {
+		eat_token(lexer->queue);
+		current_exp = make_unary_exp(OP_INCREMENT, current_exp, TRUE, current_exp->position);
+	}
+	else if (match(current_token, DECREMENT) == TRUE) {
+		eat_token(lexer->queue);
+		current_exp = make_unary_exp(OP_DECREMENT, current_exp, FALSE, current_exp->position);
+	}
+        else if (left->kind == ID_Exp) {
+	        string id = left->u.id_exp.identifier;
 		if (match(current_token, L_SQUARE_BRCKT) == TRUE) {
 			eat_token(lexer->queue);
 
@@ -530,14 +549,14 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
                         
 			eat_token(lexer->queue);
 			current_exp = make_field_exp(
-				make_subscript_field(left, loc_exp);
+				make_subscript_field(id, loc_exp, left->position)
 			);
 		}
 		else if (match(current_token, L_PAREN) == TRUE) {
 			eat_token(lexer->queue);
 			
 			current_token = peek(lexer->queue);
-			A_ExpList args = parse_expression_list(lexer, parser, COMMA);
+			A_ExpList args = parse_explist(lexer, parser, COMMA);
 			
 			if (match(current_token, R_PAREN) == FALSE) {
 				report_error(
@@ -550,7 +569,7 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 			}
 
 			eat_token(lexer->queue);
-			current_exp = make_callee_exp(left, args);
+			current_exp = make_callee_exp(id, args, left->position);
 		}
 		else if (match(current_token, COLON) == TRUE) {
 			eat_token(lexer->queue);
@@ -570,14 +589,13 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 
 			current_exp = make_field_exp(
 				make_type_field(
-					left_exp,
-					right_exp
+					id,
+					right_exp->u.id_exp.identifier
 				)
 			);
 
 			
 		}
-	
 	}
 	return current_exp;
 }

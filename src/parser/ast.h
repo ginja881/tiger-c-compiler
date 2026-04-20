@@ -72,8 +72,8 @@ struct A_Exp_ {
 	Char_Exp,
 	Array_Exp,
 	String_Exp,
-	Ref_Exp,
 	Field_Exp,
+	StmList_Exp,
 	Unary_Exp
      } kind;
      A_Pos position;
@@ -84,12 +84,12 @@ struct A_Exp_ {
 	struct {int boolean;} bool_exp;
 	struct {A_Op op; struct A_Exp_* exp; int postfix;} unary_exp;
 	struct {A_Op op; struct A_Exp_* exp1; struct A_Exp_* exp2;} op_exp;
-	struct {A_Exp id_exp; struct A_ExpList_* args;} callee_exp;	
+	struct {string id; struct A_ExpList_* args;} callee_exp;	
 	struct {string text;} string_exp;
 	struct {char character;} char_exp;
 	struct {string type; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
         struct {struct A_Field_* field;} field_exp;
-	struct {struct A_ExpList_* refs;} ref_exp;
+	struct {struct A_StmList_* list;} stm_list;
      } u;
 };
 
@@ -104,12 +104,14 @@ struct A_Field_ {
      enum {
          Subscript_Field,
 	 Ty_Field,
+	 Array_Field,
 	 Record
      } kind;
      A_Pos position;
      union {
-          struct {A_Exp id_exp; struct A_Exp_* loc;} subscript_field;
-	  struct {A_Exp id; A_Exp type;} ty_field;
+          struct {string id; struct A_Exp_* loc;} subscript_field;
+	  struct {string id; string type;} ty_field;
+	  struct {string type_id;} array_field;
 	  struct {struct A_FieldList_* record_def_fields;} record_field;
      } u;
 };
@@ -125,14 +127,16 @@ struct A_FieldList_ {
 struct A_Dec_ {
 	enum {
 	    Type_Dec,
-	    Var_Dec,
+	    Simple_Var_Dec,
+	    Field_Var_Dec,
 	    Func_Dec
 	} kind;
 	A_Pos position;
 	union {
 		struct {struct A_Field_* type_field; struct A_Field_* def_type_field;} type_dec;
-		struct {struct A_Field_* type_field; struct A_Exp_* val;} var_dec;
-		struct {string name; struct A_FieldList_* args; string type; struct A_Stm_* block;} func_dec;
+		struct {struct A_Field_* field; struct A_Exp_* val;} field_var_dec;
+		struct {string id; struct A_Exp_* val;} simple_var_dec;
+		struct {string name; struct A_FieldList_* args; string type; struct A_Exp_* block;} func_dec;
 	} u;
 };
 
@@ -157,13 +161,13 @@ struct A_Stm_ {
 	} kind;
 	A_Pos position;
         union {
-	    struct {struct A_Exp_* while_cond; struct A_Stm_* block;} while_stm;
-	    struct {struct A_Exp_* condition; struct A_Stm_* then_block; struct A_Stm_* else_branch;} if_chain;
+	    struct {struct A_Exp_* while_cond; struct A_Exp_* block;} while_stm;
+	    struct {struct A_Exp_* condition; struct A_Exp_* then_block; struct A_StmList_* else_if_branch; struct A_Exp_* else_branch;} if_chain;
 	    struct {struct A_Stm_* stm1; struct A_Stm_* stm2;} compound_stm;
 	    struct {string id; struct A_Exp_* exp;} assign_stm; 
 	    struct {struct A_Exp_* exp;}  expression_stm;
-	    struct {struct A_DecList_* dec_stms; struct A_Stm_* block;} let_stm;
-	    struct {string id; struct A_Exp_* low; struct A_Exp_* high; struct A_Stm_* block;} for_stm;
+	    struct {struct A_DecList_* dec_stms; struct A_Exp_* block;} let_stm;
+	    struct {string id; struct A_Exp_* low; struct A_Exp_* high; struct A_Exp_* block;} for_stm;
 	    struct {struct A_Exp_* exit_status;} return_stm;
 	    struct {struct A_Dec_* dec;} decl_stm;
 	} u;
@@ -211,31 +215,33 @@ A_Exp make_string_exp(string text, A_Pos position);
 
 A_ExpList make_exp_list(A_Exp exp);
 A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2);
-A_Exp make_callee_exp(A_Exp id_exp, A_ExpList args);
+A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position);
 A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position);
-A_Exp make_unary_exp(A_Op op, A_Exp exp, A_Pos position);
+A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position);
+A_Exp make_stm_list_exp(A_StmList stm_list);
 
-A_Field make_subscript_field(A_Exp id_exp, A_Exp loc);
-A_Field make_type_field(A_Exp id, A_Exp type);
+A_Field make_subscript_field(string id, A_Exp loc, A_Pos position);
+A_Field make_type_field(string id, string type, A_Pos position);
 A_FieldList make_field_list(A_Field field);
 A_Field make_record(A_FieldList field_list, A_Pos position);
 A_Exp make_field_exp(A_Field field);
 
-A_Dec make_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position);
+A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position);
+A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position);
 A_Dec make_type_dec(A_Field field, A_Field def_field, A_Pos position);
-A_Dec make_func_dec(string name, A_FieldList args, string type, A_Stm block, A_Pos position);
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position);
 A_DecList make_dec_list(A_Dec declaration);
 
 
-A_Stm make_while_stm(A_Exp while_cond, A_Stm block, A_Pos position);
-A_Stm make_if_chain(A_Exp cond, A_Stm then_block, A_Pos position);
+A_Stm make_while_stm(A_Exp while_cond, A_Exp block, A_Pos position);
+A_Stm make_if_chain(A_Exp cond, A_Exp then_block, A_StmList else_if_branch, A_Exp else_block, A_Pos position);
 A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2);
-A_Stm make_function_dec(A_Exp id, A_Stm block, A_FieldList args, string result, A_Pos position);
+A_Stm make_function_dec(string id, A_Exp block, A_FieldList args, string result, A_Pos position);
 A_Stm make_assign_stm(string id, A_Exp exp, A_Pos pos);
 A_Stm make_expression_stm(A_Exp exp);
-A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Stm block, A_Pos position);
+A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Exp block, A_Pos position);
 A_StmList make_stm_list(A_Stm stm);
-A_Stm make_let_stm(A_DecList dec_stms, A_Stm block, A_Pos position);
+A_Stm make_let_stm(A_DecList dec_stms, A_Exp block, A_Pos position);
 A_Stm make_break_stm(A_Pos position);
 A_Stm make_return_stm(A_Exp exit_status, A_Pos position);
 A_Stm make_declaration_stm(A_Dec declaration);
@@ -252,14 +258,21 @@ A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
 
 A_Exp parse_primary(Lexer lexer, Parser parser);
 A_Exp parse_unary(Lexer lexer, Parser parser);
+A_Exp parse_postfix(Lexer lexer, Parser parser);
 A_Exp parse_factor(Lexer lexer, Parser parser);
 A_Exp parse_term(Lexer lexer, Parser parser);
 A_Exp parse_expression(Lexer lexer, Parser parser);
 
+A_Dec parse_variable(Lexer lexer, Parser parser);
+A_Dec parse_type(Lexer lexer, Parser parser);
+A_StmList parse_stm_list(Lexer lexer, Parser parser);
+A_Exp parse_block(Lexer lexer, Parser);
+
+
+A_Stm parse_if_chain(Lexer lexer, Parser parser);
+
 A_Stm parse_statement(Lexer lexer, Parser parser);
 
-A_Stm parse_stm_list(Lexer lexer, Parser parser);
-A_Stm parse_if_chain(Lexer lexer, Parser parser);
 
 A_Stm parse_block(Lexer lexer, Parser parser);
 A_Stm parse_program(Lexer lexer, Parser parser);
