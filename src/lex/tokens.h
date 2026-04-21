@@ -52,7 +52,6 @@ typedef enum {
       COLON,
       L_PAREN,
       R_PAREN,
-      TAB, 
       NEW_LINE,
       // BRCKT = BRACKET
       L_CURLY_BRCKT,
@@ -70,6 +69,7 @@ typedef enum {
       MEMBER_REF,
       BREAK,
       OF,
+      ARRAY,
       END_OF_FILE
 } token;
 

@@ -155,9 +155,6 @@ void print_token_type(int lex_token) {
 	    case R_PAREN:
 	        token = "R_PAREN";
 		break;
-	    case TAB:
-	        token = "TAB";
-		break;
 	    case NEW_LINE:
 	        token = "NEW_LINE";
 	    	break;
@@ -179,11 +176,8 @@ void print_token_type(int lex_token) {
 	    case TYPE_DEC:
 	    	token = "TYPE_DEC";
 		break;
-	    case TYPE_ASSIGN:
-	    	token = "TYPE_ASSIGN";
-		break;
-	    case VAR_ASSIGN:
-	    	token = "VAR_ASSIGN";
+	    case ASSIGN:
+	    	token = "ASSIGN";
 		break;
 	    case CHAR:
 	    	token = "CHAR";

@@ -188,6 +188,15 @@ A_Field make_record(A_FieldList field_list, A_Pos position) {
 	new_record->u.record_field.record_def_fields = field_list;
 	return new_record;
 }
+A_Field make_array_field(string type_id, A_Pos position) {
+	A_Field new_array_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+	new_array_field->kind = Array_Field;
+	new_array_field->position = position;
+
+	new_array_field->u.array_field.type_id = strdup(type_id);
+	
+	return new_array_field;
+}
 A_Exp make_field_exp(A_Field field) {
 	A_Exp new_field_expression = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 	new_field_expression->kind = Field_Exp;
@@ -219,12 +228,12 @@ A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
 
 	return new_field_var_dec;
 }
-A_Dec make_type_dec(A_Field type_field, A_Field def_type_field, A_Pos position) {
+A_Dec make_type_dec(string name, A_Field def_type_field, A_Pos position) {
 	A_Dec new_type_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
 	new_type_dec->kind = Type_Dec;
 	new_type_dec->position = position;
 
-	new_type_dec->u.type_dec.type_field = type_field;
+	new_type_dec->u.type_dec.name = name;
 	new_type_dec->u.type_dec.def_type_field = def_type_field;
         
 	return new_type_dec;
@@ -262,7 +271,7 @@ A_Stm make_while_stm(A_Exp while_cond, A_Exp block, A_Pos position) {
 	return new_while_stm;
 }
 
-A_Stm make_if_stm(A_Exp cond, A_Exp then_block, A_StmList else_if_branch, A_Exp else_branch, A_Pos position) {
+A_Stm make_if_stm(A_Exp cond, A_Exp then_block, A_Stm else_branch, A_Pos position) {
 	A_Stm new_if_chain = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 
 	new_if_chain->kind = If_Stm;
@@ -270,7 +279,6 @@ A_Stm make_if_stm(A_Exp cond, A_Exp then_block, A_StmList else_if_branch, A_Exp 
 
 	new_if_chain->u.if_chain.condition = cond;
 	new_if_chain->u.if_chain.then_block = then_block;
-	new_if_chain->u.if_chain.else_if_branch = else_if_branch;
 	new_if_chain->u.if_chain.else_branch = else_branch;
 
 	return new_if_chain;
@@ -349,8 +357,15 @@ A_Stm make_return_stm(A_Exp exit_status, A_Pos position) {
 	new_return_stm->u.return_stm.exit_status = exit_status;
 	return new_return_stm;
 }
+A_Stm make_break_stm(A_Pos position) {
+	A_Stm new_break_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+	new_break_stm->kind = Break_Stm;
+	new_break_stm->position = position;
+
+	return new_break_stm;
+}
 A_Stm make_declaration_stm(A_Dec dec) {
-	A_Stm new_declaration_stm = (A_Stm)checked_malloc(sizeof(struct A_Dec_));
+	A_Stm new_declaration_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_declaration_stm->kind = Decl_Stm;
 	new_declaration_stm->position = new_declaration_stm->position;
 
@@ -367,20 +382,7 @@ A_Op match_op(Token operation) {
       
       return OP_INVALID;
 }
-void handle_indentation(Lexer lexer, Parser parser) {
-        size_t indentation = 0;
-	Token first = peek(lexer->queue);
-	Token current_token = first;
-	while (match(current_token, TAB) == TRUE) {
-		indentation++;
-		eat_token(lexer->queue);
-		current_token = peek(lexer->queue);
-	}
-	if (indentation < parser->current_indentation_level)
-		report_error(IndentError, "fuck", first->line_pos, first->char_pos,"Too many/few indents");
 
-	
-}
 A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 	A_Exp current_exp = parse_expression(lexer, parser);
 	
@@ -475,11 +477,17 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 			A_Exp init = parse_expression(lexer, parser);
 
 			current_exp = make_array_exp(array_type, size, init, position);
+	     }
+	     else {
+	     	current_exp = make_id_exp(current_token->input, position);
+		eat_token(lexer->queue);
+	     }
 	}
 	else if (match(current_token, L_CURLY_BRCKT) == TRUE) {
 		eat_token(lexer->queue);
-		A_FieldList field_list = parse_field_list(lexer, parser, COMMA);
-		
+		A_FieldList field_list = parse_fieldlist(lexer, parser, COMMA);
+	
+		current_token = peek(lexer->queue);
 		if (match(current_token, R_CURLY_BRCKT) == FALSE) {
 			report_error(
 				SyntaxError,
@@ -497,6 +505,53 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 		);
 	
 	}
+	else if (match(current_token, ARRAY) == TRUE) {
+		eat_token(lexer->queue);
+                current_token = peek(lexer->queue);
+		if (match(current_token, OF) == FALSE) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Illegal usage of \" array \" keyword "
+			);
+		}
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+		if (match(current_token, ID) == FALSE) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Must specify ID after OF"
+			);
+		}
+                current_exp = make_field_exp(
+			make_array_field(current_token->input, position)	
+		);
+	}
+	else if (match(current_token, L_PAREN) == TRUE) {
+		eat_token(lexer->queue);
+
+		current_token = peek(lexer->queue);
+
+		current_exp = parse_exp_list(lexer, parser, SEMI_COLON);
+
+		current_token = peek(lexer->queue);
+
+		if (match(current_token, R_PAREN) == FALSE) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Unclosed expression"
+			);
+		}
+		eat_token(lexer->queue);
+	}
 	else {
 		report_error(
 			SyntaxError, 
@@ -511,10 +566,12 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 A_Exp parse_unary(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Op operation = match_op(current_token);
-	eat_token(lexer->queue);
+	
 	A_Exp current_exp = parse_primary(lexer, parser);
-	if (operation == OP_INCREMENT || operation == OP_DECREMENT || operation == OP_NOT)
+	if (operation != OP_INVALID && (operation == OP_INCREMENT || operation == OP_DECREMENT || operation == OP_NOT)) {
+	      eat_token(lexer->queue);
 	      current_exp = make_unary_exp(operation, current_exp, FALSE, current_exp->position);
+	}
 	return current_exp;
 }
 A_Exp parse_postfix(Lexer lexer, Parser parser) {
@@ -590,13 +647,13 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 			current_exp = make_field_exp(
 				make_type_field(
 					id,
-					right_exp->u.id_exp.identifier
+					right_exp->u.id_exp.identifier,
+					left->position
 				)
 			);
-
-			
 		}
-	}
+               
+	}	
 	return current_exp;
 }
 A_Exp parse_factor(Lexer lexer, Parser parser) {
@@ -604,7 +661,7 @@ A_Exp parse_factor(Lexer lexer, Parser parser) {
 
 	A_Op op = match_op(peek(lexer->queue));
 	while (op != OP_INVALID && 
-		(op == OP_ADD || op == OP_SUB || op == OP_OR || op == OP_LSHIFT || 
+		(op == OP_MUL || op == OP_DIV || op == OP_MOD || op == OP_OR || op == OP_LSHIFT || 
 		op == OP_RSHIFT || op == OP_OR || op == OP_COMPAR_OR || op == OP_COMPAR_EQ)) {
 		eat_token(lexer->queue);
 		A_Exp right = parse_unary(lexer, parser);
@@ -619,8 +676,7 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 
 	A_Op op = match_op(peek(lexer->queue));
 	printf("\n Found Op\n");
-	while (op != OP_INVALID && (op == OP_MUL || op == OP_MOD ||  
-	op == OP_DIV || op == OP_AND || op == OP_COMPAR_AND))	{
+	while (op != OP_INVALID && (op == OP_ADD || op == OP_SUB || op == OP_AND || op == OP_COMPAR_AND))	{
 	     eat_token(lexer->queue);
 	     printf("\n Parsing term\n");
 	     A_Exp right = parse_factor(lexer, parser);
@@ -632,28 +688,187 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 	return left;
 }
 A_Exp parse_expression(Lexer lexer, Parser parser) {
+	return parse_term(lexer, parser);
+}
+A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position) {
+	A_Dec current_declaration = NULL;
+	A_Exp id = parse_postfix(lexer, parser);
         Token current_token = peek(lexer->queue);
-	if (match(current_token, L_PAREN) == TRUE) {
-	    eat_token(lexer->queue);
-
-	    A_Exp expression = parse_expression(lexer, parser);
-            current_token = peek(lexer->queue);
-
-	    if (match(current_token, R_PAREN) == FALSE) {
+	if (match(current_token, ASSIGN) == TRUE) {
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+		
+		A_Exp val = parse_expression(lexer, parser);
+		if (id->kind == ID_Exp) {
+			current_declaration = make_simple_var_dec(
+				id->u.id_exp.identifier,
+				val,
+				position
+			);
+		}
+		else if (id->kind == Field_Exp && id->u.field_exp.field->kind == Ty_Field) {
+			current_declaration = make_field_var_dec(
+				id->u.field_exp.field,
+				val,
+				position
+			);
+		}
+		else {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Var declarations must be specified with IDs"
+			);
+		}
+	}
+	else {
 		report_error(
 			SyntaxError, 
 			current_token->input, 
 			current_token->line_pos, 
 			current_token->char_pos, 
-			"Unclosed expression"
+			"Must specify declarations with :="
 		);
-	    }
-	    return expression;
 	}
-	return parse_term(lexer, parser);
+	return current_declaration;
+}
+A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
+	A_Dec current_declaration = NULL;
+	A_Exp id = parse_primary(lexer, parser);
+        Token current_token = peek(lexer->queue);
+	if (id->kind != ID_Exp) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Type declarations must come with IDs"
+		);
+	}
+	if (match(current_token, ASSIGN) == FALSE) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Invalid type dec"
+		);
+	}
+	eat_token(lexer->queue);
+
+        A_Exp type_val = parse_postfix(lexer, parser);
+	current_token = peek(lexer->queue);
+
+	if (type_val->kind != ID_Exp && type_val->kind != Field_Exp) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Invalid expression for type dec"
+		);
+	}
+
+        if (type_val->kind == ID_Exp) {
+		current_declaration = make_type_dec(
+			id->u.id_exp.identifier,
+                        make_type_field(
+				type_val->u.id_exp.identifier,
+				NULL,
+				type_val->position
+			),
+			position
+
+		);
+	}
+	else {
+		current_declaration = make_type_dec(
+			id->u.id_exp.identifier,
+			type_val->u.field_exp.field,
+			position
+		);
+	}
+
+	return current_declaration;
+
+	
+
+}
+A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
+	Token current_token = peek(lexer->queue);
+	
+	if (match(current_token, ID) != TRUE) {
+		report_error(
+			SyntaxError,
+			"function",
+			position->line_pos,
+			position->col_pos,
+			"Must specify function name"
+		);
+	}
+	string id = strdup(current_token->input);
+
+	eat_token(lexer->queue);
+	current_token = peek(lexer->queue);
+
+	if(match(current_token, L_PAREN) == FALSE) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Forgot ("
+		);
+	}
+        eat_token(lexer->queue);
+	
+	A_FieldList args = parse_fieldlist(lexer, parser, COMMA);
+	current_token = peek(lexer->queue);
+	if (match(current_token, R_PAREN) == FALSE) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Forgot )"
+		);
+	}
+
+	eat_token(lexer->queue);
+	current_token = peek(lexer->queue);
+	string type_id = "";
+	if (match(current_token, COLON) == TRUE && match(current_token->next, ID) == TRUE) {
+		eat_token(lexer->queue);
+		type_id = strdup(current_token->input);
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);		
+	}
+
+	if (match(current_token, EQ) == FALSE) {
+		report_error(
+			SyntaxError,
+			current_token->input,
+			current_token->line_pos,
+			current_token->char_pos,
+			"Must specify = in function declaration"
+		);
+	}
+	eat_token(lexer->queue);
+
+	A_Exp block = make_stm_list_exp(parse_stm_list(lexer, parser));
+	return make_func_dec(id, args,type_id, block, position);
+}
+void eat_lines(Lexer lexer, Parser parser) {
+	while (match(peek(lexer->queue), NEW_LINE) == TRUE)
+		eat_token(lexer->queue);
 }
 
+
 A_Stm parse_stm(Lexer lexer, Parser parser) {
+	eat_lines(lexer, parser);
+
  	Token current_token = peek(lexer->queue);
 	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos, parser->current_indentation_level);
 
@@ -681,51 +896,55 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
                 return make_assign_stm(id, val_exp, position);
 	}
 	else if (match(current_token, VAR_DEC) == TRUE) {
+		
 		eat_token(lexer->queue);
-		if (match(current_token, ID) == FALSE) {
-			report_error(SyntaxError,
-				current_token->input,
-				current_token->line_pos,
-				current_token->char_pos,
-				"Must specify an identifier"
-			);
-		}
-		A_Exp field_exp = parse_expression(lexer, parser);
-		if (match(current_token, ASSIGN) == FALSE) {
-			report_error(SyntaxError,
-				current_token->input,
-				current_token->line_pos,
-				current_token->char_pos,
-				"Must use :="
-			);
-		}
-		eat_token(lexer->queue);
-		A_Exp val_exp = parse_expression(lexer, parser);
-
-		return make_declaration_stm(
-			make_var_dec(
-				field_exp->u.field_exp.field, 
-				val_exp,
-				position
-		));
+		A_Dec declaration = parse_variable(lexer, parser, position);
+		return make_declaration_stm(declaration);
 	}
-	return make_expression_stm(parse_expression(lexer, parser));
+	else if (match(current_token, TYPE_DEC) == TRUE) {
+		eat_token(lexer->queue);
+		A_Dec declaration = parse_type(lexer, parser, position);
+		return make_declaration_stm(declaration);
+	}
+	else if (match(current_token, FUNCTION_DEF) == TRUE) {
+		eat_token(lexer->queue);
+                A_Dec function_dec = parse_function_dec(lexer, parser, position);
+		return make_declaration_stm(function_dec);
+	}
+	else
+		return make_expression_stm(parse_expression(lexer, parser));
+	return NULL;
+}
+
+A_StmList parse_stm_list(Lexer lexer, Parser parser) {
+	Token current_token = peek(lexer->queue);
+
+	A_StmList stm_list_head = make_stm_list(parse_stm(lexer, parser));
+	A_StmList stm_list = stm_list_head;
+	
+	while (match(current_token, SEMI_COLON) == TRUE) {
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+
+		A_Stm current_stm = parse_stm(lexer, parser);
+
+		if (current_stm == NULL) 
+			break;
+		stm_list->next = make_stm_list(current_stm);
+		stm_list = stm_list->next;
+                current_token = peek(lexer->queue);
+	} 
+
+	return stm_list_head;
 }
 
 A_Stm parse_program(Lexer lexer, Parser parser) {
         A_Stm root = NULL;
 	while (match(peek(lexer->queue), END_OF_FILE) == FALSE) {
-	   
-	   if (match(peek(lexer->queue), NEW_LINE) == TRUE || 
-	   match(peek(lexer->queue), TAB) == TRUE) {
-	   	eat_token(lexer->queue);
-	   	continue;
-	   }
-
-	   handle_indentation(lexer, parser);
-
+	  
 	   A_Stm parsed_stm = parse_stm(lexer, parser);
-	   parser->current_indentation_level = 0;
+	  
+
 	   parser->current_stm = -1;
 
 	   printf("\n Parsed Statement\n");
