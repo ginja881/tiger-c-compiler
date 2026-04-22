@@ -1,2 +1,2 @@
-function fuck(a: int, b: int, c: int) : int =
+function fuck(a: int, b: int, c: int) = 
 	(a +1; b+2; c+3)

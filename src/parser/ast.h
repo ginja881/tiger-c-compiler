@@ -77,6 +77,7 @@ struct A_Exp_ {
 	For_Exp,
 	If_Exp,
 	Let_Exp,
+	Assign_Exp,
 	While_Exp,
 	Unary_Exp
      } kind;
@@ -93,10 +94,11 @@ struct A_Exp_ {
 	struct {char character;} char_exp;
 	struct {string type; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
         struct {struct A_Field_* field;} field_exp;
-	struct {struct A_ExpList_* exp_list}; seq_exp;
+	struct {struct A_ExpList_* exp_list;} seq_exp;
 	struct {struct A_Exp_* cond; struct A_Exp_* then; struct A_Exp_* else_block;} if_exp;
 	struct {struct A_Exp_* cond; struct A_Exp_* block;} while_exp;
-	struct {struct A_Exp_* low; struct A_Exp_* high; string id; struct A_Exp_* block} for_exp;
+	struct {struct A_Exp_* identifier; struct A_Exp_* val;} assign_exp;
+	struct {struct A_Exp_* id; struct A_Exp_* low; struct A_Exp_* high; struct A_Exp_* block;} for_exp;
 	struct {struct A_DecList_* declarations; struct A_Exp_* block;} let_exp;
 
      } u;
@@ -159,11 +161,14 @@ struct A_Stm_ {
 		Exp_Stm,
 		Continue_Stm,
 		Break_Stm,
+		Decl_Stm,
 		Compound_Stm
 	} kind;
+	A_Pos position;
 	union {
-		struct{ struct A_Exp_* expression} exp_stm;
-		struct{struct A_Stm stm1; struct A_Stm stm2;} compound_stm;
+		struct{ struct A_Exp_* expression;} exp_stm;
+		struct{struct A_Stm_* stm1; struct A_Stm_* stm2;} compound_stm;
+		struct{struct A_Dec_* dec;} decl_stm;
 	} u;
 };
 
@@ -173,7 +178,6 @@ struct Parser_ {
      struct A_Stm_* root;
      int is_in_block;
      int current_stm;
-     size_t current_indentation_level;
 };
 
 // Types
@@ -190,7 +194,7 @@ typedef struct A_DecList_* A_DecList;
 // Constructors
 Parser make_parser(void);
 
-A_Pos make_pos(size_t col_pos, size_t line_pos, size_t indentation_level);
+A_Pos make_pos(size_t col_pos, size_t line_pos);
 
 A_Exp make_id_exp(string id, A_Pos position);
 A_Exp make_num_exp(int num, A_Pos position);
@@ -208,7 +212,8 @@ A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position);
 A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position);
 A_Exp make_dec_exp(A_Dec exp);
 
-A_Exp make_for_exp(string id, A_Exp high, A_Exp low, A_Exp block A_Pos position);
+A_Exp make_assign_exp(A_Exp identifier, A_Exp val);
+A_Exp make_for_exp(A_Exp id, A_Exp high, A_Exp low, A_Exp block, A_Pos position);
 A_Exp make_while_exp(A_Exp cond, A_Exp block, A_Pos position);
 A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position);
 A_Exp make_let_exp(A_DecList declarations, A_Exp block, A_Pos position);
@@ -247,21 +252,29 @@ A_FieldList parse_field_list(Lexer lexer, Parser parser, token delimiter);
 A_DecList parse_dec_list(Lexer lexer, Parser parser, token delimiter);
 A_ExpList parse_exp_list(Lexer lexer, Parser parser, token delimiter);
 
+
+
+
 A_Exp parse_primary(Lexer lexer, Parser parser);
 A_Exp parse_unary(Lexer lexer, Parser parser);
 A_Exp parse_postfix(Lexer lexer, Parser parser);
 A_Exp parse_factor(Lexer lexer, Parser parser);
 A_Exp parse_term(Lexer lexer, Parser parser);
+
+A_Exp parse_assign_exp(Lexer lexer, Parser parser);
+A_Exp parse_for_exp(Lexer lexer, Parser parser);
+A_Exp parse_if_exp(Lexer lexer, Parser parser);
+A_Exp parse_while_exp(Lexer lexer, Parser parser);
+A_Exp parse_let_exp(Lexer lexer, Parser parser);
+A_Exp parse_control_exp(Lexer lexer, Parser parser);
+
 A_Exp parse_expression(Lexer lexer, Parser parser);
 
 A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position);
 A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position);
 A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position);
 
-A_Exp parse_while_exp(Lexer lexer, Parser parser);
-A_Exp parse_for_exp(Lexer lexer, Parser parser);
-A_Exp parse_let_exp(Lexer lexer, Parser parser);
-A_Exp parse_if_exp(Lexer lexer, Parser parser);
+
 
 A_Stm parse_statement(Lexer lexer, Parser parser);
 

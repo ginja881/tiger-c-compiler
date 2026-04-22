@@ -4,17 +4,14 @@
 Parser make_parser(void) {
       Parser new_parser = (Parser)checked_malloc(sizeof(struct Parser_));
       new_parser->root = NULL;
-      new_parser->current_indentation_level = 0;
-      new_parser->is_in_block = 0;
       new_parser->current_stm = -1;
       return new_parser;
 }
 
-A_Pos make_pos(size_t col_pos, size_t line_pos, size_t indentation_level) {
+A_Pos make_pos(size_t col_pos, size_t line_pos) {
 	A_Pos position = (A_Pos)checked_malloc(sizeof(struct A_Pos_));
 	position->col_pos = col_pos;
 	position->line_pos = line_pos;
-	position->indentation_level = indentation_level;
 	return position;
 }
 
@@ -141,15 +138,6 @@ A_Exp make_array_exp(string type, A_Exp size, A_Exp init, A_Pos position) {
 }
 
 
-A_Exp make_stm_list_exp(A_StmList stm_list) {
-	A_Exp new_stm_list_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
-	new_stm_list_exp->kind = StmList_Exp;
-	new_stm_list_exp->position = stm_list->stm->position;
-
-	new_stm_list_exp->u.stm_list.list = stm_list;
-
-	return new_stm_list_exp;
-}
 
 A_Field make_subscript_field(string id, A_Exp loc, A_Pos position) {
 	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
@@ -260,28 +248,38 @@ A_DecList make_dec_List(A_Dec declaration) {
 	return new_dec_list;
 }
 
-A_Stm make_while_stm(A_Exp while_cond, A_Exp block, A_Pos position) {
-	A_Stm new_while_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_while_stm->kind = While_Stm;
-	new_while_stm->position = position;
+A_Exp make_while_exp(A_Exp while_cond, A_Exp block, A_Pos position) {
+	A_Exp new_while_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_while_exp->kind = While_Exp;
+	new_while_exp->position = position;
 
-	new_while_stm->u.while_stm.while_cond = while_cond;
-	new_while_stm->u.while_stm.block = block;
+	new_while_exp->u.while_exp.cond = while_cond;
+	new_while_exp->u.while_exp.block = block;
 	
-	return new_while_stm;
+	return new_while_exp;
 }
 
-A_Stm make_if_stm(A_Exp cond, A_Exp then_block, A_Stm else_branch, A_Pos position) {
-	A_Stm new_if_chain = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position) {
+	A_Exp new_if_chain = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 
-	new_if_chain->kind = If_Stm;
+	new_if_chain->kind = If_Exp;
 	new_if_chain->position = position;
 
-	new_if_chain->u.if_chain.condition = cond;
-	new_if_chain->u.if_chain.then_block = then_block;
-	new_if_chain->u.if_chain.else_branch = else_branch;
+	new_if_chain->u.if_exp.cond = cond;
+	new_if_chain->u.if_exp.then = then;
+	new_if_chain->u.if_exp.else_block = else_branch;
 
 	return new_if_chain;
+}
+
+A_Exp make_seq_exp(A_ExpList exp_list) {
+	A_Exp new_seq_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_seq_exp->kind = Seq_Exp;
+	new_seq_exp->position = exp_list->exp->position;
+
+	new_seq_exp->u.seq_exp.exp_list = exp_list;
+
+	return new_seq_exp;
 }
 
 A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2) {
@@ -296,15 +294,15 @@ A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2) {
 	return new_compound_stm;
 }
 
-A_Stm make_assign_stm(string id, A_Exp exp, A_Pos pos) {
-	A_Stm new_assign_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_assign_stm->kind = Assign_Stm;
-	new_assign_stm->position = pos;
+A_Exp make_assign_exp(A_Exp identifier, A_Exp exp) {
+	A_Exp new_assign_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_assign_exp->kind = Assign_Exp;
+	new_assign_exp->position = identifier->position;
 
-	new_assign_stm->u.assign_stm.id = strdup(id);
-	new_assign_stm->u.assign_stm.exp = exp;
+	new_assign_exp->u.assign_exp.identifier = identifier;
+	new_assign_exp->u.assign_exp.val = exp;
 
-        return new_assign_stm;
+        return new_assign_exp;
 }
 
 A_Stm make_expression_stm(A_Exp exp) {
@@ -312,57 +310,49 @@ A_Stm make_expression_stm(A_Exp exp) {
 	new_expression_stm->kind = Exp_Stm;
 	new_expression_stm->position = exp->position;
 
-	new_expression_stm->u.expression_stm.exp = exp;
+	new_expression_stm->u.exp_stm.expression = exp;
 
 	return new_expression_stm;
 }
 
-A_Stm make_for_stm(string id, A_Exp low, A_Exp high, A_Exp block, A_Pos position) {
-	A_Stm new_for_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_for_stm->kind = For_Stm;
-	new_for_stm->position = position;
+A_Exp make_for_exp(A_Exp id, A_Exp low, A_Exp high, A_Exp block, A_Pos position) {
+	A_Exp new_for_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_for_exp->kind = For_Exp;
+	new_for_exp->position = position;
 
-	new_for_stm->u.for_stm.id = strdup(id);
-	new_for_stm->u.for_stm.low = low;
-	new_for_stm->u.for_stm.high = high;
-	new_for_stm->u.for_stm.block = block;
+	new_for_exp->u.for_exp.id = id;
+	new_for_exp->u.for_exp.low = low;
+	new_for_exp->u.for_exp.high = high;
+	new_for_exp->u.for_exp.block = block;
 	
-	return new_for_stm;
+	return new_for_exp;
+}
+
+A_Exp make_let_exp(A_DecList dec_stms, A_Exp block, A_Pos position) {
+	A_Exp new_let_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+	new_let_exp->kind = Let_Exp;
+	new_let_exp->position = position;
+
+	new_let_exp->u.let_exp.declarations = dec_stms;
+	new_let_exp->u.let_exp.block = block;
+
+	return new_let_exp;
 }
 
 
-A_StmList make_stm_list(A_Stm stm) {
-	A_StmList new_stm_list = (A_StmList)checked_malloc(sizeof(struct A_StmList_));
-	new_stm_list->stm = stm;
-	new_stm_list->next = NULL;
-	return new_stm_list;
-}
-
-A_Stm make_let_stm(A_DecList dec_stms, A_Exp block, A_Pos position) {
-	A_Stm new_let_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_let_stm->kind = Let_Stm;
-	new_let_stm->position = position;
-
-	new_let_stm->u.let_stm.dec_stms = dec_stms;
-	new_let_stm->u.let_stm.block = block;
-
-	return new_let_stm;
-}
-
-A_Stm make_return_stm(A_Exp exit_status, A_Pos position) {
-	A_Stm new_return_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
-	new_return_stm->kind = Return_Stm;
-	new_return_stm->position = position;
-
-	new_return_stm->u.return_stm.exit_status = exit_status;
-	return new_return_stm;
-}
 A_Stm make_break_stm(A_Pos position) {
 	A_Stm new_break_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
 	new_break_stm->kind = Break_Stm;
 	new_break_stm->position = position;
 
 	return new_break_stm;
+}
+A_Stm make_continue_stm(A_Pos position) {
+	A_Stm new_continue_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+	new_continue_stm->kind = Continue_Stm;
+	new_continue_stm->position = position;
+
+	return new_continue_stm;
 }
 A_Stm make_declaration_stm(A_Dec dec) {
 	A_Stm new_declaration_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
@@ -415,7 +405,7 @@ A_FieldList parse_fieldlist(Lexer lexer, Parser parser, token delimiter) {
 A_Exp parse_primary(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Exp current_exp = NULL;
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, parser->current_indentation_level);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
 	if (match(current_token, NUM) == TRUE) {
 		current_exp = make_num_exp(atoi(current_token->input), position);
 		eat_token(lexer->queue);
@@ -535,12 +525,9 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 	else if (match(current_token, L_PAREN) == TRUE) {
 		eat_token(lexer->queue);
 
-		current_token = peek(lexer->queue);
-
-		current_exp = parse_exp_list(lexer, parser, SEMI_COLON);
+		current_exp = make_seq_exp(parse_explist(lexer, parser, SEMI_COLON));
 
 		current_token = peek(lexer->queue);
-
 		if (match(current_token, R_PAREN) == FALSE) {
 			report_error(
 				SyntaxError,
@@ -553,6 +540,7 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 		eat_token(lexer->queue);
 	}
 	else {
+		printf("\n Input %s \n", current_token->input);
 		report_error(
 			SyntaxError, 
 			current_token->input,
@@ -594,6 +582,7 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 
 			current_token = peek(lexer->queue);
 			A_Exp loc_exp = parse_expression(lexer, parser);
+			current_token = peek(lexer->queue);
 			if (match(current_token, R_SQUARE_BRCKT) == FALSE) {
 				report_error(
 					SyntaxError,
@@ -614,7 +603,7 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 			
 			current_token = peek(lexer->queue);
 			A_ExpList args = parse_explist(lexer, parser, COMMA);
-			
+			current_token = peek(lexer->queue);	
 			if (match(current_token, R_PAREN) == FALSE) {
 				report_error(
 					SyntaxError,
@@ -687,8 +676,58 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 	printf("\n parsed term\n");
 	return left;
 }
-A_Exp parse_expression(Lexer lexer, Parser parser) {
+A_Exp parse_control_exp(Lexer lexer, Parser parser) {
+	Token current_token = peek(lexer->queue);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	
+
+	if (match(current_token, WHILE) == TRUE) {
+		eat_token(lexer->queue);
+		parser->current_stm = While_Exp;
+
+		A_Exp condition = parse_term(lexer, parser);
+		current_token = peek(lexer->queue);
+		if (match(current_token, DO) == FALSE) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Must specify DO with while expressions"
+			);
+		}
+		eat_token(lexer->queue);
+		eat_lines(lexer, parser);
+		A_Exp block = parse_term(lexer, parser);
+		return make_while_exp(condition, block, position);		
+	}
+	else if (match(current_token, ID) == TRUE) {
+		A_Exp id_exp = parse_term(lexer, parser);
+		if (id_exp->kind != ID_Exp && 
+		(id_exp->kind == Field_Exp && id_exp->u.field_exp.field->kind == Subscript_Field)) {
+			return id_exp;	
+		}
+
+		current_token = peek(lexer->queue);
+
+		if (match(current_token, EQ) == FALSE) {
+			return id_exp;
+		}
+
+		eat_token(lexer->queue);
+		current_token = peek(lexer->queue);
+
+		A_Exp val = parse_term(lexer, parser);
+
+		return make_assign_exp(id_exp, val);
+
+
+	}
+
 	return parse_term(lexer, parser);
+}
+A_Exp parse_expression(Lexer lexer, Parser parser) {
+	return parse_control_exp(lexer, parser);
 }
 A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position) {
 	A_Dec current_declaration = NULL;
@@ -747,7 +786,7 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 			"Type declarations must come with IDs"
 		);
 	}
-	if (match(current_token, ASSIGN) == FALSE) {
+	if (match(current_token, EQ) == FALSE) {
 		report_error(
 			SyntaxError,
 			current_token->input,
@@ -758,9 +797,9 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 	}
 	eat_token(lexer->queue);
 
-        A_Exp type_val = parse_postfix(lexer, parser);
+        A_Exp type_val = parse_expression(lexer, parser);
 	current_token = peek(lexer->queue);
-
+	
 	if (type_val->kind != ID_Exp && type_val->kind != Field_Exp) {
 		report_error(
 			SyntaxError,
@@ -856,8 +895,8 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 		);
 	}
 	eat_token(lexer->queue);
-
-	A_Exp block = make_stm_list_exp(parse_stm_list(lexer, parser));
+	eat_lines(lexer, parser);
+	A_Exp block = parse_expression(lexer, parser);
 	return make_func_dec(id, args,type_id, block, position);
 }
 void eat_lines(Lexer lexer, Parser parser) {
@@ -870,12 +909,12 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
 	eat_lines(lexer, parser);
 
  	Token current_token = peek(lexer->queue);
-	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos, parser->current_indentation_level);
+	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos);
 
 	if (match(current_token, BREAK) == TRUE) {
 		eat_token(lexer->queue);
 		current_token = peek(lexer->queue);
-		if (parser->current_stm != For_Stm  && parser->current_stm != While_Stm) {
+		if (parser->current_stm != For_Exp  && parser->current_stm != While_Exp) {
 			report_error(
 				SyntaxError,
 				current_token->input, 
@@ -888,13 +927,7 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
 		eat_token(lexer->queue);
                 return make_break_stm(position);
 	}
-	else if (match(current_token, ID) == TRUE && match(current_token->next, ASSIGN) == TRUE) {
-		string id = current_token->input;
-		eat_token(lexer->queue);
-		eat_token(lexer->queue);
-		A_Exp val_exp = parse_expression(lexer, parser);
-                return make_assign_stm(id, val_exp, position);
-	}
+
 	else if (match(current_token, VAR_DEC) == TRUE) {
 		
 		eat_token(lexer->queue);
@@ -916,27 +949,6 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
 	return NULL;
 }
 
-A_StmList parse_stm_list(Lexer lexer, Parser parser) {
-	Token current_token = peek(lexer->queue);
-
-	A_StmList stm_list_head = make_stm_list(parse_stm(lexer, parser));
-	A_StmList stm_list = stm_list_head;
-	
-	while (match(current_token, SEMI_COLON) == TRUE) {
-		eat_token(lexer->queue);
-		current_token = peek(lexer->queue);
-
-		A_Stm current_stm = parse_stm(lexer, parser);
-
-		if (current_stm == NULL) 
-			break;
-		stm_list->next = make_stm_list(current_stm);
-		stm_list = stm_list->next;
-                current_token = peek(lexer->queue);
-	} 
-
-	return stm_list_head;
-}
 
 A_Stm parse_program(Lexer lexer, Parser parser) {
         A_Stm root = NULL;
