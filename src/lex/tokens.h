@@ -18,7 +18,6 @@ typedef enum {
       LT_EQ,
       NOT,
       COMPAR_NOT_EQ,
-      COMPAR_EQ,
       COMPAR_AND,
       COMPAR_OR,
       BIT_AND,
@@ -65,9 +64,10 @@ typedef enum {
       EQ,
       CHAR,
       COMMA,
-      STRING,
+      STRING_VAL,
       MEMBER_REF,
       BREAK,
+      CONTINUE,
       OF,
       ARRAY,
       END_OF_FILE
@@ -101,6 +101,7 @@ struct Lexer_ {
      size_t current_pos;
      size_t current_line;
      size_t current_input_size;
+     char* current_line;
      char* current_input;
 };
 

@@ -24,7 +24,8 @@ int main(int argc, char* argv[]) {
 		       lexer->current_line++;
 		       lexer->current_pos = 0;
 		  }
-	         
+		  if (token == STRING_VAL)
+		  	printf("\nSUCCESS\n");
 
 		  printf("\n \e[0;32m ---TOKEN INFORMATION--- \e[0m\n");
                   print_token_type(token);                                                   
@@ -76,9 +77,6 @@ void print_token_type(int lex_token) {
 		break;
 	    case NOT:
 	        token = "NOT";
-		break;
-	    case COMPAR_EQ:
-	        token = "COMPAR_EQ";
 		break;
 	    case COMPAR_AND:
 	        token = "COMPAR_AND";
@@ -185,7 +183,7 @@ void print_token_type(int lex_token) {
 	    case COMMA:
 	    	token = "COMMA";
 		break;
-	   case STRING:
+	   case STRING_VAL:
 	   	token = "STRING";
 		break;
 	   case MEMBER_REF:

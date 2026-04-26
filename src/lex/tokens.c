@@ -7,7 +7,7 @@ Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string inpu
       new_token->text_size = text_size;
       new_token->input = input;
       new_token->token_type = token_type;
-      
+      new_token->next = NULL;
       return new_token;
 }
 
@@ -46,6 +46,7 @@ TokenQueue enqueue_token(TokenQueue queue, Token token) {
       else {
           queue->tail->next = token;
 	  queue->tail = queue->tail->next;
+	 
       }
       queue->size++;
       return queue;
@@ -60,5 +61,8 @@ Token eat_token(TokenQueue queue) {
       Token old_front = queue->front;
       queue->front = queue->front->next;
       queue->size--;
+
+      if (queue->size == 0)
+      	queue->tail = NULL;
       return old_front;
 }

@@ -42,7 +42,6 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL><<EOF>>		{ return END_OF_FILE;}
 <INITIAL>:=			{ advance(); return ASSIGN; }
 <INITIAL>!=			{ advance(); return COMPAR_NOT_EQ;}
-<INITIAL>==			{ advance(); return COMPAR_EQ; }
 <INITIAL>>>			{ advance(); return BIT_LSHIFT; }
 <INITIAL><<			{ advance(); return BIT_RSHIFT; } 
 <INITIAL>>=			{ advance(); return GT_EQ; }
@@ -94,14 +93,20 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 				}
 <STRING>"\n"			{ lexer_error();}
 <STRING><<EOF>>			{ lexer_error();}
-<STRING>[^\"]+			{
-					text = strdup(yytext);
-                                        lexer->current_input_size += yyleng;
+<STRING>[^"]+		        {	
+					if (text == NULL) text = strdup(yytext);
+					else {
+						size_t len = strlen(text);
+						text = realloc(text, len + yyleng + 1);
+						memcpy(text+len, yytext, yyleng);
+						text[len + yyleng] = '\0';
+                                        }
+					lexer->current_input_size += yyleng;
 				}
 <STRING>\"		        {
 					lexer->current_input = text;
 					BEGIN INITIAL; 
-					return STRING;
+					return STRING_VAL;
 				}
 <INITIAL>\'[^\\n]{1}\' 		{ advance(); return CHAR;}
 <INITIAL>((" ")+)|"\t"			{ advance(); }
