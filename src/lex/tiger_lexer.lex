@@ -2,6 +2,7 @@
 
 #include "tokens.h"
 extern Lexer lexer;
+extern int panic_mode;
 
 void advance() {
     lexer->current_pos += yyleng;
@@ -11,15 +12,18 @@ void advance() {
 void lexer_error() {
      report_error(
      	IllegalCharacter, 
-     	lexer->current_input, 
-     	lexer->current_line, 
+     	lexer->current_input,
+     	lexer->current_line,
      	lexer->current_pos,
-	"Unrecognized character"
+	"Unrecognized character",
+	panic_mode
      );
 }
+
 // Helpers for strings
 
 char* text;
+
 %}
 
 digits [0-9]+

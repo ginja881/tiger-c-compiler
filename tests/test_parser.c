@@ -4,7 +4,7 @@
 
 extern FILE* yyin;
 Lexer lexer;
-
+int panic_mode;
 
 
 int main(int argc, char* argv[]) {
@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
 
 	yyin = fopen(argv[1], "r");
 	int token;
+	panic_mode = FALSE;
 	while ((token = yylex()) != -1) {
 		Token new_token = make_token(
 			lexer->current_line,

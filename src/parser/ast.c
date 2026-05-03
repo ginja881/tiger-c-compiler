@@ -5,6 +5,8 @@ Parser make_parser(void) {
       Parser new_parser = (Parser)checked_malloc(sizeof(struct Parser_));
       new_parser->root = NULL;
       new_parser->current_stm = -1;
+      new_parser->panic_mode = FALSE;
+
       return new_parser;
 }
 
@@ -456,7 +458,8 @@ A_Field parse_field(Lexer lexer, Parser parser) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Unrecgonized field"
+			"Unrecgonized field",
+			panic_mode
 		);
 	}
 
@@ -474,7 +477,8 @@ A_Field parse_field(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify ID after : for type fields"
+				"Must specify ID after : for type fields",
+				panic_mode
 			);
 		}
 		current_token = peek(lexer->queue);
@@ -494,7 +498,8 @@ A_Field parse_field(Lexer lexer, Parser parser) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Unrecgonized field"
+			"Unrecgonized field",
+			panic_mode
 		);
 	}
 
@@ -563,7 +568,8 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"BREAK expressions can only be in For and While Expressions"
+				"BREAK expressions can only be in For and While Expressions",
+				panic_mode
 			);
 		}
 		current_exp = make_break_exp(position);
@@ -576,7 +582,8 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"CONTINUE expressions can only be in For and While Expressions"
+				"CONTINUE expressions can only be in For and While Expressions",
+				panic_mode
 			);
 		}
 		current_exp = make_continue_exp(position);
@@ -613,7 +620,8 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Unclosed expression"
+				"Unclosed expression",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -637,7 +645,8 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"OF must follow ARRAY keyword"
+				"OF must follow ARRAY keyword",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -649,7 +658,8 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"ID must follow OF"
+				"ID must follow OF",
+				panic_mode
 			);
 		}
 		string id = strdup(current_token->input);
@@ -673,7 +683,8 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Unclosed item record"
+				"Unclosed item record",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -700,7 +711,8 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 					current_token->input,
 					current_token->line_pos,
 					current_token->char_pos,
-					"Must close with ]"
+					"Must close with ]",
+					panic_mode
 				);
 			}
 			eat_token(lexer->queue);
@@ -773,7 +785,8 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 					current_token->input,
 					current_token->line_pos,
 					current_token->char_pos,
-					"Must close with ]"
+					"Must close with ]",
+					panic_mode
 				);
 			}
                         
@@ -795,7 +808,8 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 					current_token->input,
 					current_token->line_pos,
 					current_token->char_pos,
-					"Must close callee with )"
+					"Must close callee with )",
+					panic_mode
 				);
 			}
 
@@ -815,7 +829,8 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 					current_token->input,
 					current_token->line_pos,
 					current_token->char_pos,
-					"Must close item record with }"
+					"Must close item record with }",
+					panic_mode
 				);
 			}
 
@@ -841,7 +856,8 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 					current_token->input,
 					current_token->line_pos,
 					current_token->char_pos,
-					"Unrecognized identifier"
+					"Unrecognized identifier",
+					panic_mode
 				);
 			}
 
@@ -889,7 +905,8 @@ A_Exp parse_bitwise(Lexer lexer, Parser parser) {
 				current_token->input, 
 				current_token->line_pos,
 				current_token->char_pos,
-				"Invalid Expression"
+				"Invalid Expression",
+				panic_mode
 			);
 		}
 		left = make_op_exp(op, left, right);
@@ -914,7 +931,8 @@ A_Exp parse_factor(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Invalid Expression"
+				"Invalid Expression",
+				panic_mode
 			);
 		}
 		left = make_op_exp(op, left, right);
@@ -941,7 +959,8 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Invalid Expression"
+			"Invalid Expression",
+			panic_mode
 		);
 	     }
 
@@ -972,7 +991,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify DO with while expressions"
+				"Must specify DO with while expressions",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -1013,7 +1033,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"For expression must start with ID expression"
+				"For expression must start with ID expression",
+				panic_mode
 			);
 		}
 		current_token = peek(lexer->queue);
@@ -1023,7 +1044,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify := after ID expression in for expression"
+				"Must specify := after ID expression in for expression",
+				panic_mode
 			);
 		}
 
@@ -1042,7 +1064,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify TO after assign exp"
+				"Must specify TO after assign exp",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -1058,7 +1081,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify DO in for exp"
+				"Must specify DO in for exp",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -1079,7 +1103,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must specify THEN for if expressions"
+				"Must specify THEN for if expressions",
+				panic_mode
 			);
 		}
 		eat_token(lexer->queue);
@@ -1112,7 +1137,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must include IN within LET expression after declarations"
+				"Must include IN within LET expression after declarations",
+				panic_mode
 			);
 		}
 
@@ -1150,7 +1176,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Must end LET statement with END"
+				"Must end LET statement with END",
+				panic_mode
 			);
 		} 
 		eat_token(lexer->queue);
@@ -1183,7 +1210,8 @@ A_DecList parse_declarations(Lexer lexer, Parser parser) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Expected declaration"
+				"Expected declaration",
+				panic_mode
 			);
 		}
 		printf("\n Input: %s \n", current_token->input);
@@ -1227,7 +1255,8 @@ A_Dec parse_declaration(Lexer lexer, Parser parser) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Expected declaration"
+			"Expected declaration",
+			panic_mode
 		);
 	}
 	if (match(peek(lexer->queue), SEMI_COLON) == TRUE)
@@ -1263,7 +1292,8 @@ A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position) {
 				current_token->input,
 				current_token->line_pos,
 				current_token->char_pos,
-				"Var declarations must be specified with IDs"
+				"Var declarations must be specified with IDs",
+				panic_mode
 			);
 		}
 	}
@@ -1273,7 +1303,8 @@ A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input, 
 			current_token->line_pos, 
 			current_token->char_pos, 
-			"Must specify declarations with :="
+			"Must specify declarations with :=",
+			panic_mode
 		);
 	}
 
@@ -1291,7 +1322,8 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Type declarations must come with IDs"
+			"Type declarations must come with IDs",
+			panic_mode
 		);
 	}
 	if (match(current_token, EQ) == FALSE) {
@@ -1300,7 +1332,8 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Invalid type dec"
+			"Invalid type dec",
+			panic_mode
 		);
 	}
 	eat_token(lexer->queue);
@@ -1314,7 +1347,8 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Invalid expression for type dec"
+			"Invalid expression for type dec",
+			panic_mode
 		);
 	}
 
@@ -1352,7 +1386,8 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 			"function",
 			position->line_pos,
 			position->col_pos,
-			"Must specify function name"
+			"Must specify function name",
+			panic_mode
 		);
 	}
 	string id = strdup(current_token->input);
@@ -1366,7 +1401,8 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Forgot ("
+			"Forgot (",
+			panic_mode
 		);
 	}
         eat_token(lexer->queue);
@@ -1379,7 +1415,8 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Forgot )"
+			"Forgot )",
+			panic_mode
 		);
 	}
 
@@ -1400,7 +1437,8 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 			current_token->input,
 			current_token->line_pos,
 			current_token->char_pos,
-			"Must specify = in function declaration"
+			"Must specify = in function declaration",
+			panic_mode
 		);
 	}
 	eat_token(lexer->queue);

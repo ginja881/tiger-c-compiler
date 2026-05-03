@@ -7,7 +7,7 @@
 #include "lex/tokens.h"
 #include "parser/ast.h"
 
-
+int panic_mode;
 extern FILE* yyin;
 Lexer lexer;
 
@@ -21,6 +21,8 @@ int main(int argc, char** argv) {
     
     lexer = make_lexer();
     int token;
+    int panic_mode = FALSE;
+
     yyin = fopen(file_name, "r");
     
     Line_Array line_array = make_line_array(DEFAULT_LINES_CAPACITY);

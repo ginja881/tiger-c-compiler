@@ -99,14 +99,15 @@ typedef struct TokenQueue_* TokenQueue;
 struct Lexer_ {
      TokenQueue queue;
      size_t current_pos;
-     size_t current_line;
+     size_t current_line;    
      size_t current_input_size;
-     char* current_line;
+    
      char* current_input;
 };
 
 typedef struct Lexer_* Lexer;
 
+extern int panic_mode;
 
 // Constructors
 Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type);

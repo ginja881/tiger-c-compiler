@@ -26,31 +26,10 @@ typedef enum {
 
 typedef const char* string;
 
-struct A_Line_ {
-	size_t characters;
-	string line;
-};
-
-struct A_Line_* A_Line;
-
-struct Line_Array_ {
-	A_Line* lines;
-	size_t line_count;
-	size_t capacity;
-};
-typedef struct Line_Array_* Line_Array;
-
-
-
 string String(char* text);
 void* checked_malloc(size_t bytes);
-void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg);
+void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg, int panic_mode);
 
 
-A_Line make_line(size_t characters, string line);
-Line_Array make_line_array(void);
-
-Line_Array append_line(Line_Array line_array, A_Line line);
-Line_Array resize_line_array(Line_Array line_array, size_t new_capacity);
 
 #endif

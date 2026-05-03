@@ -184,6 +184,7 @@ struct A_Stm_ {
 
 struct Parser_ {
      struct A_Stm_* root;
+     int panic_mode;
      int current_stm;
 };
 
@@ -197,6 +198,7 @@ typedef struct A_FieldList_* A_FieldList;
 typedef struct A_Dec_* A_Dec;
 typedef struct A_DecList_* A_DecList;
 
+extern int panic_mode;
 
 // Constructors
 Parser make_parser(void);

@@ -1,6 +1,6 @@
 let 
 
- type any = {any: int}
+ type any = {any: }
  var buffer := getchar()
 
  function readint(any: any) : int =
@@ -17,7 +17,7 @@ let
      i
  end
 
- type list = {first: int, rest: list}
+ type list = {first: , rest: list}
 
  function readlist() : list =
     let var any := any{any=0}
