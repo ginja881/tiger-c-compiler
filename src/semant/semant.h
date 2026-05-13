@@ -3,7 +3,7 @@
 #include "parser/ast.h"
 
 struct Scope_ {
-	SymbolTable environment;
+	Environment environment;
 	struct Scope_* deeper_scope;
 };
 

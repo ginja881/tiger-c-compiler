@@ -1,8 +1,13 @@
-#include "util.h"
+
+#ifndef __TYPE_H__
+#define __TYPE_H__
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "util.h"
+#include "semant/env.h"
 
 struct Type_ {
 	enum {
@@ -14,14 +19,15 @@ struct Type_ {
 		Array_Type, 
 		Record_Type, 
 		NIL_Type, 
-		Void_Type, 
 		Field_Type,
-		Type_Collection
+		Void_Type
 	} kind;
 	union {
-		struct {Symbol identifier; struct Type_* type;} field_type;
+		struct {Symbol name; struct Type_* type;} field_type;
+		struct {struct TypeList_* types;} record_type;
+		
 		struct {struct Type_* element_type;} array_type;
-		struct {struct Type_List_* type_list;} type_collection;
+		
 	} u;
 };
 
@@ -39,8 +45,6 @@ Type make_char_type(void);
 Type make_boolean_type(void);
 Type make_real_type(void);
 Type make_array_type(Type element_type);
-Type make_field_type(Symbol identifier, Type type);
+Type make_field_type(Symbol name, Type type);
 Type_List make_type_list(Type type);
-Type make_type_collection(Type_List type_list);
-
-
+#endif 
