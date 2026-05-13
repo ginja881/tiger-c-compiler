@@ -7,7 +7,8 @@
 #include <string.h>
 
 #include "util.h"
-#include "semant/env.h"
+
+typedef struct Symbol_* Symbol;
 
 struct Type_ {
 	enum {
