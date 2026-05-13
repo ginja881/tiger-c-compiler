@@ -7,13 +7,10 @@ struct Scope_ {
 	struct Scope_* deeper_scope;
 };
 
-struct ScopeStack_ {
-	struct Scope_* head;
-	struct Scope_* top;
-};
+
 
 struct SemanticAnalyzer_ {
-	struct ScopeStack_* scopes;
+	struct Scope_* scopes_head;
 	Parser parser;
 };
 
@@ -21,15 +18,11 @@ typedef struct Scope_* Scope;
 typedef struct ScopeStack_* ScopeStack;
 typedef struct SemanticAnalyzer_* SemanticAnalyzer;
 
+Scope begin_scope(SemanticAnalyzer sem);
+void end_scope(SemanticAnalyzer sem);
 
 
-ScopeStack make_scope_stack(void);
-Scope begin_scope(void);
-ScopeStack end_top_scope(ScopeStack current_stack);
-Scope peek(ScopeStack current_stack);
-
-
-SemanticAnalyzer make_semantic_analyzer(Parser parser, ScopeStack scope_stack);
+SemanticAnalyzer make_semantic_analyzer(Parser parser);
 
 
 void analyze_semantic(SemanticAnalyzer sem);
