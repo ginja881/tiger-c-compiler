@@ -34,6 +34,9 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 	 case TypeError:
 	 	error_status = "(Type Error)";
 		break;
+	 case UnknownError:
+	 	error_status = "(Unknown Error)";
+		break;
      }
      printf("\n---------------------------\n");
      fprintf(

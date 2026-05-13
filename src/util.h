@@ -18,6 +18,7 @@ typedef enum {
      IllegalCharacter,
      SyntaxError,
      TypeError,
+     UnknownError,
      IndentError
 } error_code;
 

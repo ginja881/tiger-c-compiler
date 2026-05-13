@@ -2,7 +2,8 @@ SHELL = /bin/bash
 CC = gcc
 LEXICAL_GENERATOR = lex
 LEAK_CHECKER = valgrind
-CFLAGS = -fPIC -g -Wall -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-parameter -Wextra -Werror
+NO_WARNINGS = -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable
+CFLAGS = -fPIC -g -Wall $(NO_WARNINGS) -Wextra -Werror
 LINKED_LIBRARIES = -lm 
 SRC_DIR = src
 TEST_DIR = tests
@@ -12,7 +13,9 @@ LOG_DIR = logs
 UTIL = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 LEXICAL_DEPENDENCIES = $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tokens.c
 PARSER_DEPENDENCIES =  $(SRC_DIR)/parser/ast.c
-OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(PARSER_DEPENDENCIES)
+SEMANT_DEPENDENCIES =  $(SRC_DIR)/semant/symbol.c
+
+OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(PARSER_DEPENDENCIES) $(SEMANT_DEPENDENCIES)
 
 $(BUILD_DIR)/compiler: $(OVERALL_DEPENDENCIES) $(SRC_DIR)/main.c 
 	@if [ ! -d $(BUILD_DIR) ]; \

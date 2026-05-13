@@ -25,8 +25,7 @@ int main(int argc, char** argv) {
 
     yyin = fopen(file_name, "r");
     
-    Line_Array line_array = make_line_array(DEFAULT_LINES_CAPACITY);
-
+   
     while ((token = yylex()) != -1) {
         
 	 
@@ -39,8 +38,7 @@ int main(int argc, char** argv) {
 	 );
 	 enqueue_token(lexer->queue, new_token);
          if (new_token->token_type == NEW_LINE) {
-	 	A_Line new_line = make_line(lexer->current_input_size, String(lexer->current_line));
-		line_array = append(line_array
+	 	
 	 	lexer->current_line++;
 		lexer->current_pos = 0;
 	 }
