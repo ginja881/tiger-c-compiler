@@ -18,7 +18,14 @@ int main(int argc, char** argv) {
     }
     
     char* file_name = argv[1];
-    
+    string extension = strrchr(filename, ".");
+
+
+    if (!extension || strcmp(extension + 1, "tig") != 0) {
+    	fprintf(stderr, "\nMust specify .tig file\n");
+	return EXIT_FAILURE;
+    }
+
     lexer = make_lexer();
     int token;
     int panic_mode = FALSE;

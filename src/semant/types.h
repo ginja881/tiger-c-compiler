@@ -2,11 +2,8 @@
 #ifndef __TYPE_H__
 #define __TYPE_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "util.h"
+#include "parser/ast.h"
 
 typedef struct Symbol_* Symbol;
 
@@ -32,13 +29,13 @@ struct Type_ {
 	} u;
 };
 
-struct Type_List_ {
+struct TypeList_ {
 	struct Type_* type;
-	struct Type_List_* type_list;
+	struct TypeList_* type_list;
 };
 
 typedef struct Type_* type;
-typedef struct Type_List_* Type_List;
+typedef struct TypeList_* Type_List;
 
 Type make_int_type(void);
 Type make_string_type(void);
@@ -47,5 +44,8 @@ Type make_boolean_type(void);
 Type make_real_type(void);
 Type make_array_type(Type element_type);
 Type make_field_type(Symbol name, Type type);
-Type_List make_type_list(Type type);
+Type make_record_type(TypeList fields);
+TypeList make_type_list(Type type, TypeList next);
+
+
 #endif 

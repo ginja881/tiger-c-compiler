@@ -9,10 +9,10 @@ EnvEntry make_function_entry(TypeList parameters, Type return_type) {
 	return new_function_entry;
 }
 
-EnvEntry make_type_entry(Type raw_type) {
-	EnvEntry new_type_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
-	new_type_entry->kind = Type_Entry;
-	new_type_entry->u.type_entry = raw_type;
+EnvEntry make_var_entry(Type raw_type) {
+	EnvEntry new_var_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
+	new_var_entry->kind = Var_Entry;
+	new_var_entry->u.var_entry = raw_type;
 	return new_type_entry;
 }
 
@@ -42,11 +42,12 @@ Symbol make_symbol(string name, EnvEntry environment_entry) {
 	return new_symbol;
 }
 
-Environment make_environment(size_t capacity) {
+Environment make_environment(size_t capacity, Env_Kind kind) {
 	Environment new_environment = checked_malloc(sizeof(struct Environment_));
 	new_environment->size = 0;
 	new_environment->capacity = capacity;
 	new_environment->symbols = calloc(capacity,  sizeof(Symbol));
+	new_environment->kind = kind;
 	return new_environment;
 }
 
@@ -58,7 +59,7 @@ size_t hash(size_t capacity, string key) {
 	return hash_code % capacity;
 }
 
-Symbol get(Environment environment, string name) {
+Symbol get_symbol(Environment environment, string name) {
 	size_t hash_value = hash(environment->capacity, name);
 	Symbol chosen_symbol = environment->symbols[hash_value];
 
@@ -76,7 +77,7 @@ Symbol get(Environment environment, string name) {
 	return NULL;
 }
 
-Environment resize(Environment environment, size_t new_capacity) {
+Environment resize_environment(Environment environment, size_t new_capacity) {
 	Environment new_environment = make_environment(new_capacity);
 	new_environment->size = environment->size;
 	for (size_t i = 0; i < environment->capacity; i++) {
@@ -103,10 +104,10 @@ Environment resize(Environment environment, size_t new_capacity) {
 }
 
 
-Environment insert(Environment environment, Symbol new_symbol) {
+Environment insert_symbol(Environment environment, Symbol new_symbol) {
 	double load_factor = (double) environment->size / environment->capacity;
 	if (load_factor >= LOAD_FACTOR_THRESHOLD)
-		environment = resize(environment, environment->capacity * 2);
+		environment = resize_environment(environment, environment->capacity * 2);
 
 	size_t hash_value = hash(environment->capacity, name);
 	Symbol chosen_symbol = environment->symbols[hash_value];
@@ -124,7 +125,7 @@ Environment insert(Environment environment, Symbol new_symbol) {
 	return environment;
 }
 
-Environment delete(Environment environment, string name) {
+Environment delete_symbol(Environment environment, string name) {
 	size_t hash_value = hash(environment->capacity, name);
 	Symbol chosen_symbol = environment->symbols[hash_value];
 
