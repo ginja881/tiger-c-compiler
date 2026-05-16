@@ -237,6 +237,14 @@ SemanticAnalyzer make_semantic_analyzer(Parser parser) {
 	SemanticAnalyzer new_semantic_analyzer = (SemanticAnalyzer)checked_malloc(sizeof(struct SemanticAnalyzer_));
 	new_semantic_analyzer->parser = parser;
 	new_semantic_analyzer->scope_head = NULL;
+	
+	builtin_string_type = make_string_type();
+	builtin_int_type = make_int_type();
+	builtin_real_type = make_real_type();
+	builtin_boolean_type = make_boolean_type();
+	builtin_char_type = make_char_type();
+	builtin_void_type = make_void_type();
+	builtin_nil_type = make_nil_type();
 
 	return new_semantic_analyzer;
 }
