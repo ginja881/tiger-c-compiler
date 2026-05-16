@@ -7,19 +7,19 @@ Environment make_standard_var_env(void) {
 		make_symbol("flush",
 			make_function_entry(
 				make_type_list(
-					make_void_type()	
+					builtin_void_type
 				)
 			)
 		)
 	);
 	string_symbol =  make_symbol("s", 
 		make_var_entry(
-			make_string_type()
+			builtin_string_type
 		)
 	);
 	int_symbol = make_symbol("i",
 		make_var_entry(
-			make_int_type()
+			builtin_int_type
 		)
 	);
 
@@ -32,7 +32,8 @@ Environment make_standard_var_env(void) {
 						string_symbol->environment_entry->u.var_entry
 					),
 					NULL
-				)
+				),
+				builtin_void_type
 			)
 		)
 	);
@@ -41,10 +42,10 @@ Environment make_standard_var_env(void) {
 		make_symbol("getchar",
 			make_function_entry(
 				make_type_list(
-					make_void_type(),
+					builtin_void_type,
 					NULL
 				),
-				make_string_type()
+				builtin_string_type
 			)
 		)
 	);
@@ -59,7 +60,7 @@ Environment make_standard_var_env(void) {
 					),
 					NULL
 				),
-				make_int_type()
+				builtin_int_type
 			)
 		)
 	);
@@ -74,7 +75,7 @@ Environment make_standard_var_env(void) {
 					 ),
 					 NULL
 				),
-				make_char_type()
+				builtin_char_type
 			)
 		)
 	);
@@ -89,7 +90,7 @@ Environment make_standard_var_env(void) {
 					),
 					NULL
 				),
-				make_int_type()
+				builtin_int_type
 			)
 		)
 	);
@@ -104,7 +105,7 @@ Environment make_standard_var_env(void) {
 					),
 					NULL
 				),
-				make_int_type()
+				builtin_int_type
 			)
 	);
 
@@ -118,7 +119,7 @@ Environment make_standard_var_env(void) {
 					),
 					NULL
 				),
-				make_void_type()
+				builtin_void_type
 			)
 		)
 	);
@@ -139,7 +140,7 @@ Environment make_standard_var_env(void) {
 						NULL
 					)
 				),
-				make_string_type()
+				builtin_string_type
 			)
 		)
 	);
@@ -166,7 +167,7 @@ Environment make_standard_var_env(void) {
 						)
 					)
 				),
-				make_string_type()
+				builtin_string_type
 			)
 		)
 	);
@@ -180,32 +181,32 @@ Environment make_standard_type_env(void) {
 	standard_type_env = make_environment(DEFAULT_CAPACITY, Type_Env);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("string",
-			make_string_type()
+			builtin_string_type
 		)
 	);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("int",
-			make_int_type()
+			builtin_int_type
 		)
 	);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("integer",
-			make_int_type()
+			builtin_int_type
 		)
 	);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("char",
-			make_char_type()
+			builtin_char_type
 		)
 	);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("nil",
-			make_nil_type()
+			builtin_nil_type
 		)
 	);
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("bool",
-			make_boolean_type()
+			builtin_boolean_type
 		)
 	);
 	return standard_type_env;

@@ -18,6 +18,15 @@ typedef struct ScopeStack_* ScopeStack;
 typedef struct SemanticAnalyzer_* SemanticAnalyzer;
 typedef void* Tr_Exp; 
 
+
+Type builtin_string_type = make_string_type();
+Type builtin_int_type = make_int_type();
+Type builtin_boolean_type = make_boolean_type();
+Type builtin_char_type = make_char_type();
+Type builtin_real_type = make_real_type();
+Type builtin_nil_type = make_nil_type();
+Type builtin_void_type = make_void_type();
+
 extern int panic_mode;
 
 // Standard Environments
