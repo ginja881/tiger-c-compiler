@@ -24,14 +24,14 @@ struct EnvEntry_ {
 	union {
 		struct {TypeList parameters; Type return_type} function_entry;
 		Type var_entry;
-		struct {Type element_type; size_t size;} array_entry;
+		struct {Type element_type; int size;} array_entry;
 		struct {TypeList fields;} record_entry;
 	} u;
 };
 
 struct Symbol_ {
 	string name;
-	struct EnvEntry_ environment_entry;
+	struct EnvEntry_* environment_entry;
 	struct Symbol_* next; 
 
 };
@@ -56,7 +56,7 @@ typedef struct Environment_* SymbolTable;
 
 EnvEntry make_function_entry(TypeList parameters, Type return_type);
 EnvEntry make_var_entry(Type raw_type);
-EnvEntry make_array_entry(Type element_type, size_t size);
+EnvEntry make_array_entry(Type element_type, int size);
 EnvEntry make_record_entry(TypeList fields);
 
 Symbol make_symbol(string name, EnvEntry environment_entry);

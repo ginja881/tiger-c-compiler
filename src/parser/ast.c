@@ -608,11 +608,15 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 	else if (match(current_token, L_PAREN) == TRUE) {
 		eat_token(lexer->queue);
 		eat_lines(lexer, parser);
+		
 		A_ExpList exp_list = parse_explist(lexer, parser, SEMI_COLON);
 		if (exp_list == NULL)
 			return make_seq_exp(NULL);
+		if (exp_list->next == NULL) {
+			return exp_list->exp;
+		}
 		current_exp = make_seq_exp(exp_list);
-
+		printf("\nSEQ_EXP FOUND\n");
 		current_token = peek(lexer->queue);
 		if (match(current_token, R_PAREN) == FALSE) {
 			report_error(

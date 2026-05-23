@@ -1,4 +1,4 @@
-#include "semant/env.h"
+#include "semant/symbol.h"
 
 EnvEntry make_function_entry(TypeList parameters, Type return_type) {
 	EnvEntry new_function_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
@@ -16,7 +16,7 @@ EnvEntry make_var_entry(Type raw_type) {
 	return new_type_entry;
 }
 
-EnvEntry make_array_type(Type element_type, size_t size) {
+EnvEntry make_array_type(Type element_type, int size) {
 	EnvEntry new_array_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_array_entry->kind = Array_Entry;
 	new_array_entry->u.array_entry.element_type = element_type;

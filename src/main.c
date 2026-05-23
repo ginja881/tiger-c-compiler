@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 
     yyin = fopen(file_name, "r");
     
-   
+    
     while ((token = yylex()) != -1) {
         
 	 

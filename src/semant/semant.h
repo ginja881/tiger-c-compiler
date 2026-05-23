@@ -9,15 +9,20 @@ struct Scope_ {
 };
 
 struct SemanticAnalyzer_ {
-	struct Scope_* scopes_head;
+	struct Scope_* scope_head;
+	int checking_for_value;
 	Parser parser;
 };
 
 typedef struct Scope_* Scope;
 typedef struct ScopeStack_* ScopeStack;
 typedef struct SemanticAnalyzer_* SemanticAnalyzer;
-typedef void* Tr_Exp; 
+typedef void* Tr_Exp;
 
+typedef struct Exp_Ty {
+	Tr_Exp main_exp;
+	Type exp_type;
+};
 
 Type builtin_string_type;
 Type builtin_int_type;
@@ -29,6 +34,8 @@ Type builtin_void_type;
 
 extern int panic_mode;
 
+Exp_Ty make_exp_ty(Tr_Exp main_exp, Type exp_type);
+
 // Standard Environments
 Environment make_standard_var_env(void);
 Environment make_standard_type_env(void);
@@ -36,15 +43,15 @@ Environment make_standard_type_env(void);
 // Scope Stack
 SemanticAnalyzer begin_scope(SemanticAnalyzer sem, Environment var_env, Environment type_env);
 SemanticAnalyzer end_scope(SemanticAnalyzer sem);
-SemanticAnalyzer peek_scope(SemanticAnalyzer sem);
-
+Scope peek_scope(SemanticAnalyzer sem);
 
 SemanticAnalyzer make_semantic_analyzer(Parser parser);
 
-Tr_Exp make_tree_exp(A_Exp expression);
+Exp_Ty check_literal(A_Exp expression, SemanticAnalyzer sem);
+Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem);
+Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem);
 
-Tr_Exp check_exp(A_Exp expression, SemanticAnalyzer sem);
+Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem);
 
 void semantic_main(SemanticAnalyzer sem);
-
 

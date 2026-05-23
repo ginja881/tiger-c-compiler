@@ -18,8 +18,7 @@ typedef enum {
      IllegalCharacter,
      SyntaxError,
      TypeError,
-     UnknownError,
-     IndentError
+     UnknownError
 } error_code;
 
 
@@ -29,6 +28,7 @@ typedef const char* string;
 
 string String(char* text);
 void* checked_malloc(size_t bytes);
+
 void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg, int panic_mode);
 
 
