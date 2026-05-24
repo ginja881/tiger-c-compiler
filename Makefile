@@ -13,9 +13,9 @@ LOG_DIR = logs
 UTIL = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 LEXICAL_DEPENDENCIES = $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tokens.c
 PARSER_DEPENDENCIES =  $(SRC_DIR)/parser/ast.c
-SEMANT_DEPENDENCIES =  $(SRC_DIR)/semant/symbol.c
+SEMANT_DEPENDENCIES =  $(SRC_DIR)/semant/types.c $(SRC_DIR)/semant/symbol.c $(SRC_DIR)/semant/semant.c
 
-OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(PARSER_DEPENDENCIES) 
+OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(PARSER_DEPENDENCIES) $(SEMANT_DEPENDENCIES)
 
 $(BUILD_DIR)/compiler: $(OVERALL_DEPENDENCIES) $(SRC_DIR)/main.c 
 	@if [ ! -d $(BUILD_DIR) ]; \
@@ -25,7 +25,7 @@ $(BUILD_DIR)/compiler: $(OVERALL_DEPENDENCIES) $(SRC_DIR)/main.c
 	@$(LEXICAL_GENERATOR) -o $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tiger_lexer.lex
 	@echo Done!!
 
-	@$(CC) $(CFLAGS) -I$(SRC_DIR) $(UTIL) $(OVERALL_DEPENDENCIES) $(LINKED_LIBRARIES) $(SRC_DIR)/main.c -o $@
+	@$(CC) $(CFLAGS) -I$(SRC_DIR) $(UTIL) $(OVERALL_DEPENDENCIES) $(LINKED_LIBRARIES) $(SRC_DIR)/main.c -o $@ > log.txt
 	@echo Build done! Executable at $@
 
 $(BUILD_DIR)/$(TEST_DIR)/%.o: $(TEST_DIR)/%.c

@@ -6,6 +6,7 @@
 #include "util.h"
 #include "lex/tokens.h"
 #include "parser/ast.h"
+#include "semant/semant.h"
 
 int panic_mode;
 extern FILE* yyin;
@@ -18,7 +19,7 @@ int main(int argc, char** argv) {
     }
     
     char* file_name = argv[1];
-    string extension = strrchr(filename, ".");
+    string extension = strrchr(file_name, '.');
 
 
     if (!extension || strcmp(extension + 1, "tig") != 0) {
@@ -53,7 +54,11 @@ int main(int argc, char** argv) {
 	    break;
     }
     Parser parser = make_parser();
-    parse_program(lexer, parser); 
+    parser->root = parse_program(lexer, parser); 
+    
+    SemanticAnalyzer sem = make_semantic_analyzer(parser);
+    printf("\n Calling semantic\n");
+    semantic_main(sem);
 
     printf("\n DONE\n");
     return EXIT_SUCCESS;

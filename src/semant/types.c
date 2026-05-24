@@ -1,6 +1,16 @@
 #include "semant/types.h"
+Type make_nil_type(void) {
+	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
+	new_type->kind = NIL_Type;
 
+	return new_type;
+}
+Type make_void_type(void) {
+	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
+	new_type->kind = Void_Type;
 
+	return new_type;
+}
 Type make_int_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Int_Type;
@@ -35,30 +45,18 @@ Type make_boolean_type(void) {
 	return new_type;
 }
 
-Type make_void_type(void) {
-	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
-	new_type->kind = Void_Type;
 
-	return new_type;
-}
-
-Type make_nil_type(void) {
-	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
-	new_type->kind = NIL_Type;
-
-	return new_type;
-}
-
-Type make_array_type(Type element_type) {
+Type make_array_type(Type element_type, int size) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Array_Type;
 
 	new_type->u.array_type.element_type = element_type;
+	new_type->u.array_type.size = size;
 
 	return new_type;
 }
 
-Type make_field_type(Symobl name, Type type) {
+Type make_field_type(Symbol name, Type type) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Field_Type;
 
@@ -98,7 +96,32 @@ int match_types(Type type1, Type type2) {
 		return FALSE;
 	return (type1->kind == type2->kind ? TRUE : FALSE);
 }
+size_t type_cost(Type type1) {
+	if (type1 == NULL)
+		return 0;
 
+	switch(type1->kind) {
+		case Void_Type: return 0;
+		case NIL_Type: return 0;
+		case Boolean_Type: return 1;
+		case Int_Type: return sizeof(int);
+		case Char_Type: return sizeof(char);
+		case Real_Type: return sizeof(double);
+		case Array_Type: return type_cost(type1->u.array_type.element_type) * type1->u.array_type.size;
+		case Field_Type: return type_cost(type1->u.field_type.type);
+		case Record_Type: {
+			size_t total_cost = 0;
+			TypeList current_type = type1->u.record_type.types;
+			while (current_type != NULL) {
+				total_cost += type_cost(current_type->type);
+				current_type = current_type->next;
+			}
+			return total_cost;
+		}
+		default: break;
+	}
+	return -1;
+}
 Op_Class  op_class(A_Op operation) {
 	#define X(ast_op, class_op) \
 		if (operation == ast_op) return class_op;

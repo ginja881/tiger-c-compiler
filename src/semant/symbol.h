@@ -22,7 +22,7 @@ struct EnvEntry_ {
 	} kind;
 
 	union {
-		struct {TypeList parameters; Type return_type} function_entry;
+		struct {TypeList parameters; Type return_type;} function_entry;
 		Type var_entry;
 		struct {Type element_type; int size;} array_entry;
 		struct {TypeList fields;} record_entry;
@@ -45,7 +45,7 @@ struct Environment_ {
 
 typedef struct EnvEntry_* EnvEntry;
 typedef struct Symbol_* Symbol;
-typedef struct Environment_* SymbolTable;
+typedef struct Environment_* Environment;
 
 
 #define HASH_CONSTANT 35
@@ -64,7 +64,7 @@ Environment make_environment(size_t capacity, Env_Kind kind);
 
 
 size_t hash(size_t capacity, string name);
-Symbol get(Environment environment, string name);
+Symbol get_symbol(Environment environment, string name);
 Environment resize_environment(Environment environment, size_t new_capacity);
 Environment insert_symbol(Environment environment, Symbol new_symbol);
 Environment delete_symbol(Environment environment, string name);

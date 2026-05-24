@@ -13,10 +13,10 @@ EnvEntry make_var_entry(Type raw_type) {
 	EnvEntry new_var_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_var_entry->kind = Var_Entry;
 	new_var_entry->u.var_entry = raw_type;
-	return new_type_entry;
+	return new_var_entry;
 }
 
-EnvEntry make_array_type(Type element_type, int size) {
+EnvEntry make_array_entry(Type element_type, int size) {
 	EnvEntry new_array_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_array_entry->kind = Array_Entry;
 	new_array_entry->u.array_entry.element_type = element_type;
@@ -78,7 +78,7 @@ Symbol get_symbol(Environment environment, string name) {
 }
 
 Environment resize_environment(Environment environment, size_t new_capacity) {
-	Environment new_environment = make_environment(new_capacity);
+	Environment new_environment = make_environment(new_capacity, environment->kind);
 	new_environment->size = environment->size;
 	for (size_t i = 0; i < environment->capacity; i++) {
 		Symbol current_symbol = environment->symbols[i];
@@ -109,7 +109,7 @@ Environment insert_symbol(Environment environment, Symbol new_symbol) {
 	if (load_factor >= LOAD_FACTOR_THRESHOLD)
 		environment = resize_environment(environment, environment->capacity * 2);
 
-	size_t hash_value = hash(environment->capacity, name);
+	size_t hash_value = hash(environment->capacity, new_symbol->name);
 	Symbol chosen_symbol = environment->symbols[hash_value];
 	
 	environment->size++;
@@ -119,7 +119,7 @@ Environment insert_symbol(Environment environment, Symbol new_symbol) {
 		return environment;
 	}
 
-	environment->next = chosen_symbol;
+	new_symbol->next = chosen_symbol;
 	environment->symbols[hash_value] = new_symbol;
 
 	return environment;
