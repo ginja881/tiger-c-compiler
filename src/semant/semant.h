@@ -1,6 +1,7 @@
 #include "util.h"
 #include "semant/symbol.h"
 #include "parser/ast.h"
+#include "semant/translate.h"
 
 struct Scope_ {
 	Environment var_environment;
@@ -14,11 +15,11 @@ struct SemanticAnalyzer_ {
 	Parser parser;
 	Type builtin_string_type;
 	Type builtin_int_type;
-	Type builtin_boolean_type;
 	Type builtin_char_type;
 	Type builtin_real_type;
 	Type builtin_nil_type;
 	Type builtin_void_type;
+	Type builtin_error_type;
 };
 
 typedef struct Scope_* Scope;
@@ -41,9 +42,10 @@ Environment make_standard_var_env(SemanticAnalyzer sem);
 Environment make_standard_type_env(SemanticAnalyzer sem);
 
 // Scope Stack
-SemanticAnalyzer begin_scope(SemanticAnalyzer sem, Environment var_env, Environment type_env);
+SemanticAnalyzer begin_scope(SemanticAnalyzer sem);
 SemanticAnalyzer end_scope(SemanticAnalyzer sem);
 Scope peek_scope(SemanticAnalyzer sem);
+
 
 SemanticAnalyzer make_semantic_analyzer(Parser parser);
 
@@ -51,7 +53,18 @@ Exp_Ty check_literal(A_Exp expression, SemanticAnalyzer sem);
 Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem);
 Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem);
 
+
 Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem);
 
+SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem);
+SemanticAnalyzer handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem);
+SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem);
+SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem);
+
+void resolve_type(Type result_type, SemanticAnalyzer sem, A_Pos position);
+SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem);
+Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticAnalyzer sem);
+
+void process_statement(A_Stm stm, SemanticAnalyzer sem);
 void semantic_main(SemanticAnalyzer sem);
 

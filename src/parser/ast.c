@@ -10,7 +10,7 @@ Parser make_parser(void) {
       return new_parser;
 }
 
-A_Pos make_pos(size_t col_pos, size_t line_pos) {
+A_Pos make_pos(size_t line_pos, size_t col_pos) {
 	A_Pos position = (A_Pos)checked_malloc(sizeof(struct A_Pos_));
 	position->col_pos = col_pos;
 	position->line_pos = line_pos;
@@ -141,7 +141,6 @@ A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position) {
 }
 
 
-
 A_Field make_subscript_field(string id, A_Exp loc, A_Pos position) {
 	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
 	new_field->kind = Subscript_Field;
@@ -243,7 +242,7 @@ A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
 	new_field_var_dec->position = position;
 
 	new_field_var_dec->u.field_var_dec.field = type_field;
-	new_field_var_dec->u.field_var_dec.field = type_field;
+	
 	new_field_var_dec->u.field_var_dec.val = var_val;
 
 	return new_field_var_dec;
@@ -431,10 +430,12 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 		if (match(current_token, R_PAREN) == TRUE)
 			break;
 
-		if (match(current_token, delimiter) == TRUE) {
-			eat_token(lexer->queue);
-			eat_lines(lexer, parser);
+		if (match(current_token, delimiter) == FALSE) {
+			break;
 		}
+
+		eat_token(lexer->queue);
+		eat_lines(lexer, parser);
 
 		if (match(peek(lexer->queue), R_PAREN) == TRUE)
 			break;
@@ -450,7 +451,7 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 }
 A_Field parse_field(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
-	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
 	A_Field current_field = NULL;
 	if (match(current_token, ID) == FALSE) {
 		report_error(
@@ -610,13 +611,8 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 		eat_lines(lexer, parser);
 		
 		A_ExpList exp_list = parse_explist(lexer, parser, SEMI_COLON);
-		if (exp_list == NULL)
-			return make_seq_exp(NULL);
-		if (exp_list->next == NULL) {
-			return exp_list->exp;
-		}
-		current_exp = make_seq_exp(exp_list);
-		printf("\nSEQ_EXP FOUND\n");
+		
+		printf("\n SEQ EXP FOUND\n");
 		current_token = peek(lexer->queue);
 		if (match(current_token, R_PAREN) == FALSE) {
 			report_error(
@@ -629,6 +625,12 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 			);
 		}
 		eat_token(lexer->queue);
+		if (exp_list == NULL)
+			return make_seq_exp(NULL);
+		if (exp_list->next == NULL)
+			return exp_list->exp;
+
+		current_exp = make_seq_exp(exp_list);
 		return current_exp;
 	}
 	
@@ -638,7 +640,7 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	if (current_token == NULL)
 		return NULL;
-	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
 	// Array Field Production
 	if (match(current_token, ARRAY) == TRUE) {
 		eat_token(lexer->queue);
@@ -733,6 +735,7 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 
 		}
 		
+		
 	}
 	return parse_primary(lexer, parser);
 }
@@ -744,20 +747,44 @@ A_Exp parse_unary(Lexer lexer, Parser parser) {
 	A_Op operation = match_op(current_token);
 	
 
-	if (operation != OP_INVALID && (operation == OP_INCREMENT || 
+	if (operation != OP_INVALID && check_for_terminator(current_token) != TRUE && (operation == OP_INCREMENT || 
 	operation == OP_DECREMENT || operation == OP_NOT || operation == OP_SUB)) {
 	      eat_token(lexer->queue);
-	      A_Exp current_exp = parse_data_structure(lexer, parser);
+	      A_Exp current_exp = parse_postfix(lexer, parser);
 	      if (current_exp == NULL)
 	      	return NULL;
+	      else if (current_exp->kind == Field_Exp) {
+	      	 A_Field field = current_exp->u.field_exp.field;
+		 if (field->kind == Array_Field || 
+		 field->kind == Ty_Field || field->kind == Record || field->kind == Item_Field) {
+		 	report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Invalid literal",
+				panic_mode
+			);
+		 }
+	      }
+	      else if  (current_exp->kind == Array_Exp) {
+	      		report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Invalid literal",
+				panic_mode
+			);
+	      }
 	      current_exp = make_unary_exp(operation, current_exp, FALSE, current_exp->position);
 	     
 	      return current_exp;
 	}
-	return parse_data_structure(lexer, parser);
+	return parse_postfix(lexer, parser);
 }
 A_Exp parse_postfix(Lexer lexer, Parser parser) {
-	A_Exp left = parse_unary(lexer, parser);
+	A_Exp left = parse_data_structure(lexer, parser);
 	if (left == NULL)
 		return NULL;
 
@@ -877,16 +904,33 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 		current_token = peek(lexer->queue);
 		if (match(current_token, MEMBER_REF) == TRUE && discover_reference == TRUE) {
 			eat_token(lexer->queue);
+			
+			Token current_token = peek(lexer->queue);
 
-			A_Exp right_id = parse_postfix(lexer, parser);
+			if (match(current_token, ID) == FALSE) {
+				report_error(
+					SyntaxError,
+					current_token->input,
+					current_token->line_pos,
+					current_token->char_pos,
+					"Expecting ID",
+					panic_mode
+				);
+				return left;
+			}
 
 			current_exp = make_field_exp(
 				make_ref_field(
 					left,
-					right_id,
+					make_id_exp(
+						current_token->input, 
+						make_pos(current_token->line_pos,
+						current_token->char_pos)
+					),
 					left->position
 				)
 			);
+			eat_token(lexer->queue);
 		}
 		
                
@@ -894,15 +938,14 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 	return current_exp;
 }
 A_Exp parse_bitwise(Lexer lexer, Parser parser) {
-	A_Exp left = parse_postfix(lexer, parser);
+	A_Exp left = parse_term(lexer, parser);
 	if (left == NULL)
 		return NULL;
 	Token current_token = peek(lexer->queue);
 	A_Op op = match_op(current_token);
-	while (op != OP_INVALID && (op == OP_LSHIFT || op == OP_RSHIFT || 
-	op == OP_COMPAR_NOT_EQ || op == OP_EQ || op == OP_GT || op == OP_GT_EQ || op == OP_LT || op == OP_LT_EQ )) {
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE && (op == OP_LSHIFT || op == OP_RSHIFT)) {
 		eat_token(lexer->queue);
-		A_Exp right = parse_postfix(lexer, parser);
+		A_Exp right = parse_term(lexer, parser);
 		if (right == NULL) {
 			report_error(
 				SyntaxError,
@@ -920,15 +963,15 @@ A_Exp parse_bitwise(Lexer lexer, Parser parser) {
 	return left;
 }
 A_Exp parse_factor(Lexer lexer, Parser parser) {
-	A_Exp left = parse_bitwise(lexer, parser);
+	A_Exp left = parse_unary(lexer, parser);
 	if (left == NULL)
 		return NULL;
 	Token current_token = peek(lexer->queue);
 	A_Op op = match_op(current_token);
-	while (op != OP_INVALID && 
-		(op == OP_MUL || op == OP_DIV || op == OP_MOD || op == OP_OR || op == OP_COMPAR_OR)) {
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE &&
+		(op == OP_MUL || op == OP_DIV || op == OP_MOD)) {
 		eat_token(lexer->queue);
-		A_Exp right = parse_bitwise(lexer, parser);
+		A_Exp right = parse_unary(lexer, parser);
 		if (right == NULL) {
 			report_error(
 				SyntaxError,
@@ -953,7 +996,7 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Op op = match_op(current_token);
 	printf("\n  Input of term %s \n", peek(lexer->queue)->input);
-	while (op != OP_INVALID && (op == OP_ADD || op == OP_SUB || op == OP_AND || op == OP_COMPAR_AND))	{
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE && (op == OP_ADD || op == OP_SUB))	{
 	     eat_token(lexer->queue);
 	     
 	     A_Exp right = parse_factor(lexer, parser);
@@ -976,6 +1019,135 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 	printf("\n parsed term\n");
 	return left;
 }
+A_Exp parse_comparison(Lexer lexer, Parser parser) {
+	A_Exp left = parse_bitwise(lexer, parser);
+	if (left == NULL)
+		return NULL;
+	Token current_token = peek(lexer->queue);
+	A_Op op = match_op(current_token);
+
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE && (op == OP_GT || op == OP_GT_EQ || op == OP_EQ ||
+		op == OP_LT || op == OP_LT_EQ || op == OP_COMPAR_NOT_EQ)) {
+
+		eat_token(lexer->queue);
+		A_Exp right = parse_bitwise(lexer, parser);
+		
+		if (right == NULL) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Invalid Expression",
+				panic_mode
+			);
+		}
+
+		left = make_op_exp(op, left, right);
+		current_token = peek(lexer->queue);
+		op = match_op(current_token);
+	}
+	return left;
+}
+A_Exp parse_logical_and(Lexer lexer, Parser parser) {
+	A_Exp left = parse_comparison(lexer, parser);
+	if (left == NULL)
+		return NULL;
+	
+	Token current_token = peek(lexer->queue);
+	A_Op op = match_op(current_token);
+
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE && (op == OP_AND || op == OP_COMPAR_AND)) {
+		eat_token(lexer->queue);
+		A_Exp right = parse_comparison(lexer, parser);
+
+		if (right == NULL) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Invalid Expression",
+				panic_mode
+			);
+		}
+
+		left = make_op_exp(op, left, right);
+		current_token = peek(lexer->queue);
+		op = match_op(current_token); 
+	}
+	return left;
+}
+A_Exp parse_logical_or(Lexer lexer, Parser parser) {
+	A_Exp left = parse_logical_and(lexer, parser);
+	if (left == NULL)
+		return NULL;
+	
+	Token current_token = peek(lexer->queue);
+	A_Op op = match_op(current_token);
+
+	while (op != OP_INVALID && check_for_terminator(current_token) != TRUE &&  (op == OP_OR || op == OP_COMPAR_OR)) {
+		eat_token(lexer->queue);
+
+		A_Exp right = parse_logical_and(lexer, parser);
+		if (right == NULL) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"Invalid Expression",
+				panic_mode
+			);
+		}
+
+		left = make_op_exp(op, left, right);
+		current_token = peek(lexer->queue);
+		op = match_op(current_token);
+	}
+
+	return left;
+}
+int is_assignable(A_Exp expression) {
+	if (expression->kind == For_Exp || expression->kind == While_Exp || 
+	expression->kind == Break_Exp || expression->kind == Continue_Exp || 
+	expression->kind == Let_Exp || expression->kind == If_Exp)
+		return FALSE;
+	return TRUE;
+}
+A_Exp parse_assign(Lexer lexer, Parser parser) {
+	A_Exp left = parse_logical_or(lexer, parser);
+	if (left == NULL)
+		return NULL;
+	
+	Token current_token = peek(lexer->queue);
+	
+	if (left->kind != ID_Exp && !(left->kind == Field_Exp && 
+	(left->u.field_exp.field->kind == Subscript_Field || left->u.field_exp.field->kind == Ref_Field)))
+		return left;
+
+	if (match(current_token, ASSIGN) == TRUE) {
+		eat_token(lexer->queue);
+
+		A_Exp right = parse_assign(lexer, parser);
+
+		if (is_assignable(right) == FALSE) {
+			report_error(
+				SyntaxError,
+				current_token->input,
+				current_token->line_pos,
+				current_token->char_pos,
+				"NOT ASSIGNABLE",
+				panic_mode
+			);
+			return left;
+		}
+
+		left = make_assign_exp(left, right);
+	}
+
+	return left;
+}
 A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
@@ -983,9 +1155,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 
 	if (match(current_token, WHILE) == TRUE) {
 		eat_token(lexer->queue);
-		parser->current_stm = While_Exp;
-
-		A_Exp condition = parse_expression(lexer, parser);
+	
+		A_Exp condition = parse_assign(lexer, parser);
 		eat_lines(lexer, parser);
 		current_token = peek(lexer->queue);
 		printf("\n Input %s \n", current_token->input);
@@ -1006,32 +1177,11 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		A_Exp block = parse_expression(lexer, parser);
 		return make_while_exp(condition, block, position);		
 	}
-	else if (match(current_token, ID) == TRUE) {
-		A_Exp id_exp = parse_term(lexer, parser);
-		if (id_exp->kind != ID_Exp && 
-		(id_exp->kind == Field_Exp && id_exp->u.field_exp.field->kind != Subscript_Field)) {
-			return id_exp;	
-		}
-
-		current_token = peek(lexer->queue);
-
-		if (match(current_token, ASSIGN) == FALSE) {
-			return id_exp;
-		}
-
-		eat_token(lexer->queue);
-		current_token = peek(lexer->queue);
-
-		A_Exp val = parse_term(lexer, parser);
-
-		return make_assign_exp(id_exp, val);
-
-	}
 	else if (match(current_token, FOR) == TRUE) {
 		eat_token(lexer->queue);
 		
-		A_Exp low_id_exp = parse_term(lexer, parser);
-		if (low_id_exp->kind != ID_Exp) {
+		current_token = peek(lexer->queue);
+		if (match(current_token, ID) == FALSE) {
 			report_error(
 				SyntaxError,
 				current_token->input,
@@ -1041,6 +1191,8 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
+		A_Exp low_id_exp = make_id_exp(current_token->input, position);
+		eat_token(lexer->queue);
 		current_token = peek(lexer->queue);
 		if (match(current_token, ASSIGN) == FALSE) {
 			report_error(
@@ -1055,7 +1207,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 
 		eat_token(lexer->queue);
 
-		A_Exp low = parse_term(lexer, parser);
+		A_Exp low = parse_expression(lexer, parser);
 
 		eat_lines(lexer, parser);
 		
@@ -1075,7 +1227,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		eat_token(lexer->queue);
 		eat_lines(lexer, parser);
 
-		A_Exp high = parse_term(lexer, parser);
+		A_Exp high = parse_logical_or(lexer, parser);
 		eat_lines(lexer, parser);
 		current_token = peek(lexer->queue);
 
@@ -1098,7 +1250,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 	else if (match(current_token, IF) == TRUE) {
 		eat_token(lexer->queue);
 
-		A_Exp conditional = parse_expression(lexer, parser);
+		A_Exp conditional = parse_assign(lexer, parser);
 		eat_lines(lexer, parser);
 		current_token = peek(lexer->queue);
 		if (match(current_token, THEN) == FALSE) {
@@ -1189,9 +1341,36 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		return make_let_exp(declaration_list_head, block, position);
 
 	}
-	return parse_term(lexer, parser);
+	return parse_assign(lexer, parser);
+}
+int check_for_terminator(Token current_token) {
+	switch(current_token->token_type) {
+		case DO:
+		case THEN:
+		case IN:
+		case ELSE:
+		case END:
+		case TO:
+		case COMMA:
+		case R_PAREN:
+		case R_SQUARE_BRCKT:
+		case R_CURLY_BRCKT:
+		case ASSIGN:
+		case SEMI_COLON:
+			return TRUE;
+		default: 
+			break;
+	}
+
+	return FALSE;
 }
 A_Exp parse_expression(Lexer lexer, Parser parser) {
+	eat_lines(lexer, parser);
+
+	Token current_token = peek(lexer->queue);
+
+	if (check_for_terminator(current_token) == TRUE)
+		return NULL;
 	
 	return parse_control_exp(lexer, parser);
 }
@@ -1239,7 +1418,7 @@ A_DecList parse_declarations(Lexer lexer, Parser parser) {
 A_Dec parse_declaration(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Dec current_declaration = NULL;
-	A_Pos position = make_pos(current_token->char_pos, current_token->line_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
 
 	if (match(current_token, VAR_DEC) == TRUE) {
 		eat_token(lexer->queue);

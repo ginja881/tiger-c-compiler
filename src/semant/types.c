@@ -2,24 +2,28 @@
 Type make_nil_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = NIL_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
 Type make_void_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Void_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
 Type make_int_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Int_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
 Type make_real_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Real_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
@@ -27,6 +31,7 @@ Type make_real_type(void) {
 Type make_string_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = String_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
@@ -34,34 +39,46 @@ Type make_string_type(void) {
 Type make_char_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Char_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
 
-Type make_boolean_type(void) {
+Type make_error_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
-	new_type->kind = Boolean_Type;
+	new_type->kind = Error_Type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
 
 
-Type make_array_type(Type element_type, int size) {
+
+Type make_array_type(Type element_type) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Array_Type;
 
-	new_type->u.array_type.element_type = element_type;
-	new_type->u.array_type.size = size;
-
+	new_type->u.array_type = element_type;
+	new_type->state = Resolved;
 	return new_type;
 }
 
-Type make_field_type(Symbol name, Type type) {
+Type make_name_type(Symbol name, Type type) {
+	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
+	new_type->kind = Name_Type;
+
+	new_type->u.name_type.name = name;
+	new_type->u.name_type.type = type;
+	new_type->state = Unvisited;
+	return new_type;
+}
+Type make_field_type(string name, Type type) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Field_Type;
 
-	new_type->u.field_type.name = name;
+	new_type->u.field_type.name = strdup(name);
 	new_type->u.field_type.type = type;
+	new_type->state = Resolved;
 
 	return new_type;
 }
@@ -71,6 +88,7 @@ Type make_record_type(TypeList fields) {
 
 	new_type->kind = Record_Type;
 	new_type->u.record_type.types = fields;
+	new_type->state = Resolved;
 
 	return new_type;
 }
@@ -85,16 +103,38 @@ TypeList make_type_list(Type type, TypeList next) {
 }
 
 
+
 Type actual_type(Type type) {
-	if (type->kind == Field_Type)
-		return type->u.field_type.type;
+	while (type && type->kind == Name_Type && type->u.name_type.type != NULL) {
+		type = type->u.name_type.type;
+	}
 	return type;
 }
 
 int match_types(Type type1, Type type2) {
 	if (type1 == NULL || type2 == NULL)
 		return FALSE;
-	return (type1->kind == type2->kind ? TRUE : FALSE);
+
+	Type actual_type1 = actual_type(type1);
+	Type actual_type2 = actual_type(type2);
+	
+	if  (actual_type1->kind == Field_Type && actual_type2->kind == Field_Type) {
+		return match_types(actual_type(actual_type1->u.field_type.type), actual_type(actual_type2->u.field_type.type));
+	}
+	else if (actual_type1->kind == Field_Type && actual_type2->kind != Field_Type)
+		return match_types(actual_type(actual_type1->u.field_type.type), actual_type2);
+	else if (actual_type1->kind != Field_Type && actual_type2->kind == Field_Type)
+		return match_types(actual_type1, actual_type(actual_type2->u.field_type.type));
+	else if (actual_type1->kind == NIL_Type && actual_type2->kind == Record_Type)
+		return TRUE;
+	else if (actual_type1->kind == Record_Type &&  actual_type2->kind == NIL_Type)
+		return TRUE;
+	else if (actual_type1->kind == Array_Type && actual_type2->kind == Array_Type)
+		return match_types(actual_type(actual_type1->u.array_type), actual_type(actual_type2->u.array_type));
+	else if (actual_type1->kind == actual_type2->kind)
+		return TRUE;
+
+	return FALSE;
 }
 size_t type_cost(Type type1) {
 	if (type1 == NULL)
@@ -103,11 +143,10 @@ size_t type_cost(Type type1) {
 	switch(type1->kind) {
 		case Void_Type: return 0;
 		case NIL_Type: return 0;
-		case Boolean_Type: return 1;
 		case Int_Type: return sizeof(int);
 		case Char_Type: return sizeof(char);
 		case Real_Type: return sizeof(double);
-		case Array_Type: return type_cost(type1->u.array_type.element_type) * type1->u.array_type.size;
+		case Array_Type: return type_cost(type1->u.array_type) * 10;
 		case Field_Type: return type_cost(type1->u.field_type.type);
 		case Record_Type: {
 			size_t total_cost = 0;

@@ -11,20 +11,28 @@ struct Type_ {
 	enum {
 		Int_Type, 
 		String_Type,
-		Boolean_Type,
 		Real_Type,
 		Char_Type,
 		Array_Type, 
 		Record_Type, 
 		NIL_Type, 
+		Name_Type,
 		Field_Type,
+		Error_Type,
 		Void_Type
 	} kind;
+	int strict;
+	enum {
+		Unvisited,
+		Visiting,
+		Resolved
+	} state;
 	union {
-		struct {Symbol name; struct Type_* type;} field_type;
+		struct {Symbol name; struct Type_* type;} name_type;
+		struct {string name; struct Type_* type;} field_type;
 		struct {struct TypeList_* types;} record_type;
 		
-		struct {struct Type_* element_type; int size;} array_type;
+		struct Type_* array_type;
 		
 	} u;
 };
@@ -59,6 +67,8 @@ typedef enum {
 	X(OP_RSHIFT, STRICT_OP) \
 	X(OP_GT, COMPAR_OP) \
 	X(OP_LT, COMPAR_OP) \
+	X(OP_GT_EQ, COMPAR_OP) \
+	X(OP_LT_EQ, COMPAR_OP) \
 	X(OP_EQ, COMPAR_OP) \
 	X(OP_COMPAR_AND, COMPAR_OP) \
 	X(OP_COMPAR_OR, COMPAR_OP) \
@@ -68,15 +78,19 @@ Type make_void_type(void);
 Type make_int_type(void);
 Type make_string_type(void);
 Type make_char_type(void);
-Type make_boolean_type(void);
 Type make_real_type(void);
-Type make_array_type(Type element_type, int size);
-Type make_field_type(Symbol name, Type type);
+Type make_error_type(void);
+Type make_array_type(Type element_type);
+Type make_field_type(string name, Type type);
+Type make_name_type(Symbol name, Type type);
 Type make_record_type(TypeList fields);
+
 TypeList make_type_list(Type type, TypeList next);
 Type actual_type(Type type); 
+
 int match_types(Type type1, Type type2);
 size_t type_cost(Type type1);
 
 Op_Class op_class(A_Op operation);
+
 #endif 

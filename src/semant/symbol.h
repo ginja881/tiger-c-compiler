@@ -10,22 +10,20 @@
 
 typedef enum {
 	Var_Env,
-	Type_Env
+	Type_Env,
+	Escape_Env
 } Env_Kind;
-
 struct EnvEntry_ {
 	enum {
 		Var_Entry,
-		Function_Entry,
-		Array_Entry,
-		Record_Entry
+		Escape_Entry,
+		Function_Entry
 	} kind;
 
 	union {
 		struct {TypeList parameters; Type return_type;} function_entry;
+		struct {int depth, bool escapes} escape_entry;
 		Type var_entry;
-		struct {Type element_type; int size;} array_entry;
-		struct {TypeList fields;} record_entry;
 	} u;
 };
 
@@ -36,17 +34,21 @@ struct Symbol_ {
 
 };
 
-struct Environment_ {
-	Env_Kind kind;
+struct SymbolTable_ {
 	size_t capacity;
 	size_t size;
 	struct Symbol_** symbols;
 };
 
+struct Environment_ {
+	Env_Kind kind;
+	struct SymbolTable_* table;
+};
+
 typedef struct EnvEntry_* EnvEntry;
 typedef struct Symbol_* Symbol;
 typedef struct Environment_* Environment;
-
+typedef struct SymbolTable_* SymbolTable;
 
 #define HASH_CONSTANT 35
 #define DEFAULT_CAPACITY 100
@@ -56,10 +58,10 @@ typedef struct Environment_* Environment;
 
 EnvEntry make_function_entry(TypeList parameters, Type return_type);
 EnvEntry make_var_entry(Type raw_type);
-EnvEntry make_array_entry(Type element_type, int size);
-EnvEntry make_record_entry(TypeList fields);
+EnvEntry make_escape_entry(void);
 
 Symbol make_symbol(string name, EnvEntry environment_entry);
+SymbolTable make_symbol_table(size_t capacity);
 Environment make_environment(size_t capacity, Env_Kind kind);
 
 
@@ -68,4 +70,6 @@ Symbol get_symbol(Environment environment, string name);
 Environment resize_environment(Environment environment, size_t new_capacity);
 Environment insert_symbol(Environment environment, Symbol new_symbol);
 Environment delete_symbol(Environment environment, string name);
+Environment clone_environment(Environment environment);
+
 #endif

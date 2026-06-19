@@ -50,3 +50,12 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
      if (panic_mode == TRUE)
      	_Exit(-1);
 }
+
+
+BoolList new_boollist(int BOOL, BoolList next) {
+	BoolList new_bool_list = (BoolList)checked_malloc(sizeof(struct BoolList_));
+
+	new_bool_list->BOOL = BOOL;
+	new_bool_list->next = next;
+	return new_bool_list;
+}

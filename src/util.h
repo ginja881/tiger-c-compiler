@@ -9,6 +9,7 @@
 #define TRUE 1
 #define FALSE 0
 #define DEFAULT_LINES_CAPACITY 100
+#define WORD_SIZE 8
 
 #define min(X, Y) ((X) < (Y) ? (X) : (Y))
 #define max(X, Y) ((X) > (Y) ? (X) : (Y))
@@ -21,7 +22,12 @@ typedef enum {
      UnknownError
 } error_code;
 
+typedef struct BoolList_* BoolList;
 
+struct BoolList_ {
+	int BOOL;
+	BoolList next;
+};
 
 
 typedef const char* string;
@@ -30,6 +36,8 @@ string String(char* text);
 void* checked_malloc(size_t bytes);
 
 void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg, int panic_mode);
+
+BoolList new_boollist(int BOOL, BoolList next);
 
 
 

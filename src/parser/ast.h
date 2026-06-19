@@ -94,6 +94,7 @@ struct A_Exp_ {
 	struct {string id; struct A_ExpList_* args;} callee_exp;	
 	struct {string text;} string_exp;
 	struct {char character;} char_exp;
+
 	struct {string type_id; struct A_Exp_* init; struct A_Exp_* size;} array_exp;
         struct {struct A_Field_* field;} field_exp;
 	struct {struct A_ExpList_* exp_list;} seq_exp;
@@ -167,8 +168,6 @@ struct A_DecList_ {
 struct A_Stm_ {
 	enum {
 		Exp_Stm,
-		Continue_Stm,
-		Break_Stm,
 		Decl_Stm,
 		Compound_Stm
 	} kind;
@@ -203,7 +202,7 @@ extern int panic_mode;
 // Constructors
 Parser make_parser(void);
 
-A_Pos make_pos(size_t col_pos, size_t line_pos);
+A_Pos make_pos(size_t line_pos, size_t col_pos);
 
 A_Exp make_id_exp(string id, A_Pos position);
 A_Exp make_num_exp(int num, A_Pos position);
@@ -274,12 +273,12 @@ A_Exp parse_postfix(Lexer lexer, Parser parser);
 A_Exp parse_bitwise(Lexer lexer, Parser parser);
 A_Exp parse_factor(Lexer lexer, Parser parser);
 A_Exp parse_term(Lexer lexer, Parser parser);
-
-A_Exp parse_assign_exp(Lexer lexer, Parser parser);
-A_Exp parse_for_exp(Lexer lexer, Parser parser);
-A_Exp parse_if_exp(Lexer lexer, Parser parser);
-A_Exp parse_while_exp(Lexer lexer, Parser parser);
-A_Exp parse_let_exp(Lexer lexer, Parser parser);
+A_Exp parse_comparison(Lexer lexer, Parser parser);
+A_Exp parse_logical_and(Lexer lexer, Parser parser);
+A_Exp parse_logical_or(Lexer lexer, Parser parser);
+int check_for_terminator(Token current_token);
+int is_assignable(A_Exp expression);
+A_Exp parse_assign(Lexer lexer, Parser parser);
 A_Exp parse_control_exp(Lexer lexer, Parser parser);
 
 A_Exp parse_expression(Lexer lexer, Parser parser);

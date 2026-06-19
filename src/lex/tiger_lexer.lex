@@ -43,6 +43,7 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>do			{ advance(); return DO; }
 <INITIAL>var 			{ advance(); return VAR_DEC; }
 <INITIAL>type			{ advance(); return TYPE_DEC; }
+<INITIAL>let			{ advance(); return LET;}
 <INITIAL><<EOF>>		{ return END_OF_FILE;}
 <INITIAL>:=			{ advance(); return ASSIGN; }
 <INITIAL>!=			{ advance(); return COMPAR_NOT_EQ;}
