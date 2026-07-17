@@ -1,11 +1,18 @@
+#ifndef _SEMANT_H_
+#define _SEMANT_H_
+
 #include "util.h"
 #include "semant/symbol.h"
 #include "parser/ast.h"
+#include "semant/escape.h"
+#include "semant/temp.h"
 #include "semant/translate.h"
 
 struct Scope_ {
 	Environment var_environment;
 	Environment type_environment;
+	Environment escape_environment;
+	Tr_Level current_level;	
 	struct Scope_* parent;
 };
 
@@ -20,12 +27,13 @@ struct SemanticAnalyzer_ {
 	Type builtin_nil_type;
 	Type builtin_void_type;
 	Type builtin_error_type;
+	Tr_Level outermost_level;
 };
 
 typedef struct Scope_* Scope;
 typedef struct ScopeStack_* ScopeStack;
 typedef struct SemanticAnalyzer_* SemanticAnalyzer;
-typedef void* Tr_Exp;
+
 
 struct Exp_Ty_ {
 	Tr_Exp main_exp;
@@ -56,6 +64,7 @@ Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem);
 
 Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem);
 
+// Where framing and escape analysis are located
 SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem);
 SemanticAnalyzer handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem);
 SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem);
@@ -68,3 +77,4 @@ Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticA
 void process_statement(A_Stm stm, SemanticAnalyzer sem);
 void semantic_main(SemanticAnalyzer sem);
 
+#endif

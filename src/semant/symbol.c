@@ -1,25 +1,30 @@
 #include "semant/symbol.h"
 
-EnvEntry make_function_entry(TypeList parameters, Type return_type) {
+EnvEntry make_function_entry(Tr_Level level, TempLabel label, TypeList parameters, Type return_type) {
 	EnvEntry new_function_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_function_entry->kind = Function_Entry;
+	new_function_entry->u.function_entry.label = label;
+	new_function_entry->u.function_entry.level = level;
 	new_function_entry->u.function_entry.parameters = parameters;
 	new_function_entry->u.function_entry.return_type = return_type;
 
 	return new_function_entry;
 }
 
-EnvEntry make_var_entry(Type raw_type) {
+EnvEntry make_var_entry(Tr_Access access, Type raw_type) {
 	EnvEntry new_var_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_var_entry->kind = Var_Entry;
-	new_var_entry->u.var_entry = raw_type;
+	new_var_entry->u.var_entry.access = access;
+	new_var_entry->u.var_entry.variable_type = raw_type;
 	return new_var_entry;
 }
 
-EnvEntry make_escape_entry(void) {
+EnvEntry make_escape_entry(int depth) {
 	EnvEntry new_escape_entry = (EnvEntry)checked_malloc(sizeof(struct EnvEntry_));
 	new_escape_entry->kind = Escape_Entry;
-	new_escape_entry->escapes = false;
+	new_escape_entry->u.escape_entry.escapes = false;
+	new_escape_entry->u.escape_entry.depth = depth;
+
 	return new_escape_entry;
 
 }
@@ -44,7 +49,6 @@ SymbolTable make_symbol_table(size_t capacity) {
 }
 Environment make_environment(size_t capacity, Env_Kind kind) {
 	Environment new_environment = checked_malloc(sizeof(struct Environment_));
-	
 	new_environment->table = make_symbol_table(capacity); 
 	new_environment->kind = kind;
 	return new_environment;

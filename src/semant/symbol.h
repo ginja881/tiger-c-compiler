@@ -7,6 +7,7 @@
 
 #include "util.h"
 #include "semant/types.h"
+#include "semant/translate.h"
 
 typedef enum {
 	Var_Env,
@@ -21,9 +22,9 @@ struct EnvEntry_ {
 	} kind;
 
 	union {
-		struct {TypeList parameters; Type return_type;} function_entry;
-		struct {int depth, bool escapes} escape_entry;
-		Type var_entry;
+		struct {TempLabel label; Tr_Level level; TypeList parameters; Type return_type;} function_entry;
+		struct {int depth; bool escapes;} escape_entry;
+		struct {Tr_Access access; Type variable_type;} var_entry;
 	} u;
 };
 
@@ -56,9 +57,9 @@ typedef struct SymbolTable_* SymbolTable;
 
 
 
-EnvEntry make_function_entry(TypeList parameters, Type return_type);
-EnvEntry make_var_entry(Type raw_type);
-EnvEntry make_escape_entry(void);
+EnvEntry make_function_entry(Tr_Level level, TempLabel label, TypeList parameters, Type return_type);
+EnvEntry make_var_entry(Tr_Access access, Type raw_type);
+EnvEntry make_escape_entry(int depth);
 
 Symbol make_symbol(string name, EnvEntry environment_entry);
 SymbolTable make_symbol_table(size_t capacity);

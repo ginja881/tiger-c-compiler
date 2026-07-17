@@ -52,7 +52,7 @@ void report_error(error_code error, string line, size_t line_pos, size_t char_po
 }
 
 
-BoolList new_boollist(int BOOL, BoolList next) {
+BoolList new_boollist(bool BOOL, BoolList next) {
 	BoolList new_bool_list = (BoolList)checked_malloc(sizeof(struct BoolList_));
 
 	new_bool_list->BOOL = BOOL;

@@ -1,3 +1,6 @@
+#ifndef _TEMP_H_
+#define _TEMP_H_
+
 #include "util.h"
 #include "symbol.h"
 
@@ -33,4 +36,4 @@ struct TempLabelList_ {
 };
 TempLabelList make_templabel_list(TempLabel label, TempLabelList next);
 
-
+#endif

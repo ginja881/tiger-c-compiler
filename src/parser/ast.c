@@ -1347,7 +1347,6 @@ int check_for_terminator(Token current_token) {
 	switch(current_token->token_type) {
 		case DO:
 		case THEN:
-		case IN:
 		case ELSE:
 		case END:
 		case TO:
@@ -1359,7 +1358,7 @@ int check_for_terminator(Token current_token) {
 		case SEMI_COLON:
 			return TRUE;
 		default: 
-			break;
+			return FALSE;
 	}
 
 	return FALSE;

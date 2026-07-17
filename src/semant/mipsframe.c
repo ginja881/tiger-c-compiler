@@ -1,6 +1,6 @@
 #include "semant/frame.h"
 
-struct Access_ {
+struct F_Access_ {
 	bool escape;
 	enum {InRegister, InFrame} kind;
 	union {
@@ -10,15 +10,15 @@ struct Access_ {
 };
 
 struct Frame_ {
-	AccessList params;
-	AccessList locals;
+	F_AccessList params;
+	F_AccessList locals;
 	TempLabel frame_name;
 	int used_space;
 	int used_registers;
 };
 
-static Access make_register_access(int register_num) {
-	(Access) new_access = (Access)checked_malloc(sizeof(struct Access_));
+static F_Access make_register_access(int register_num, bool escape) {
+	F_Access new_access = (F_Access)checked_malloc(sizeof(struct F_Access_));
 	new_access->u.register_num = register_num;
 	new_access->kind = InRegister;
 	new_access->escape = escape;
@@ -26,8 +26,8 @@ static Access make_register_access(int register_num) {
 	return new_access;
 }
 
-static Access make_local_access(int offset, bool escape) {
-	(Access) new_access = (Access)checked_malloc(sizeof(struct Access_));
+static F_Access make_local_access(int offset, bool escape) {
+	F_Access new_access = (F_Access)checked_malloc(sizeof(struct F_Access_));
 	new_access->u.offset = offset;
 	new_access->escape = escape;
 	new_access->kind = InFrame;
@@ -36,36 +36,61 @@ static Access make_local_access(int offset, bool escape) {
 }
 
 
-Frame new_frame(TempLabel frame_name, AcessList params, AccessList locals) {
+Frame new_frame(TempLabel frame_name, BoolList params) {
+	
+
+	F_AccessList frame_parameters = NULL;
+	F_AccessList current_frame_param = NULL;	
+
 	Frame frame = (Frame)checked_malloc(sizeof(struct Frame_));
-	frame->params = params;
-	frame->locals = locals;
+	
 	frame->frame_name = frame_name;
 	frame->used_space = 0;
 	frame->used_registers = 0;
+
+
+	BoolList current_param = params;
+
+	while (current_param != NULL) {
+
+		F_Access f_access = frame_local_alloc(frame, current_param->BOOL);
+		F_AccessList new_access = checked_malloc(sizeof(struct F_AccessList_));
+		new_access->access = f_access;
+		if (frame_parameters == NULL) {
+			frame_parameters = new_access;
+			current_frame_param = frame_parameters;
+		}
+		else {
+			current_frame_param->next = new_access;
+			current_frame_param = current_frame_param->next;
+		}
+
+		current_param = current_param->next;
+	}
+
+	frame->params = frame_parameters;
+	
+
 	return frame;
 }
 
-Frame frame_static_link(Frame frame) {
-	if (frame == NULL)
-		return NULL;
-	return frame->static_link;
-}
 
 TempLabel frame_name(Frame frame) {
 	if (frame == NULL)
 		return NULL;
 	return frame->frame_name;
 }
-AccessList frame_parameters(Frame frame) {
+F_AccessList frame_parameters(Frame frame) {
 	if (frame == NULL)
 		return NULL;
 	return frame->params;
 }
-Access local_alloc(Frame frame, bool escape) {
+F_Access frame_local_alloc(Frame frame, bool escape) {
 	if (escape) {
-		frame->offset -= WORD_SIZE;
-		return make_local_access(frame->offset, escape);
+		printf("\n ESCAPE FOUND\n");
+		frame->used_space -= WORD_SIZE;
+		return make_local_access(frame->used_space, escape);
 	}
+	printf("\n VAR THAT DOES NOT ESCAPE\n");
 	return make_register_access(frame->used_registers++, escape);
 };

@@ -10,10 +10,13 @@ Exp_Ty make_exp_ty(Tr_Exp main_exp, Type exp_type) {
 
 Environment make_standard_var_env(SemanticAnalyzer sem) {
 	Environment standard_var_env = make_environment(10, Var_Env);
-	
+	Tr_Level outermost_level = sem->outermost_level;
+
 	standard_var_env = insert_symbol(standard_var_env, 
 		make_symbol("flush",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("flush"),
 				NULL,
 				sem->builtin_void_type
 			)
@@ -21,11 +24,13 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	);
 	Symbol string_symbol =  make_symbol("s", 
 		make_var_entry(
+			NULL,
 			sem->builtin_string_type
 		)
 	);
 	Symbol int_symbol = make_symbol("i",
 		make_var_entry(
+			NULL,
 			sem->builtin_int_type
 		)
 	);
@@ -33,10 +38,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("print",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("print"),
 				make_type_list(
 					make_name_type(
 						string_symbol,
-						string_symbol->environment_entry->u.var_entry
+						string_symbol->environment_entry->u.var_entry.variable_type
 					),
 					NULL
 				),
@@ -48,6 +55,8 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env, 
 		make_symbol("getchar",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("getchar"),
 				NULL,
 				sem->builtin_string_type
 			)
@@ -57,10 +66,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("ord",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("ord"),
 				make_type_list(
 					make_name_type(
 						string_symbol,
-						string_symbol->environment_entry->u.var_entry
+						string_symbol->environment_entry->u.var_entry.variable_type
 					),
 					NULL
 				),
@@ -72,10 +83,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("chr",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("chr"),
 				make_type_list(
 					 make_name_type(
 					 	int_symbol,
-						int_symbol->environment_entry->u.var_entry
+						int_symbol->environment_entry->u.var_entry.variable_type
 					 ),
 					 NULL
 				),
@@ -87,10 +100,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("size",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("size"),
 				make_type_list(
 					make_name_type(
 						string_symbol,
-						string_symbol->environment_entry->u.var_entry
+						string_symbol->environment_entry->u.var_entry.variable_type
 					),
 					NULL
 				),
@@ -102,10 +117,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("not",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("not"),
 				make_type_list(
 					make_name_type(
 						int_symbol,
-						int_symbol->environment_entry->u.var_entry
+						int_symbol->environment_entry->u.var_entry.variable_type
 					),
 					NULL
 				),
@@ -117,10 +134,12 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("exit",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("exit"),
 				make_type_list(
 					make_name_type(
 						int_symbol,
-						int_symbol->environment_entry->u.var_entry
+						int_symbol->environment_entry->u.var_entry.variable_type
 					),
 					NULL
 				),
@@ -132,15 +151,17 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("concat",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("concat"),
 				make_type_list(
 					make_name_type(
 						string_symbol,
-						string_symbol->environment_entry->u.var_entry
+						string_symbol->environment_entry->u.var_entry.variable_type
 					),
 					make_type_list(
 						make_name_type(
 							string_symbol,
-							string_symbol->environment_entry->u.var_entry
+							string_symbol->environment_entry->u.var_entry.variable_type
 						),
 						NULL
 					)
@@ -153,20 +174,22 @@ Environment make_standard_var_env(SemanticAnalyzer sem) {
 	standard_var_env = insert_symbol(standard_var_env,
 		make_symbol("substring",
 			make_function_entry(
+				outermost_level,
+				make_new_temporary_namedlabel("substring"),
 				make_type_list(
 					make_name_type(
 						string_symbol,
-						string_symbol->environment_entry->u.var_entry
+						string_symbol->environment_entry->u.var_entry.variable_type
 					),
 					make_type_list(
 						make_name_type(
 							int_symbol,
-							int_symbol->environment_entry->u.var_entry
+							int_symbol->environment_entry->u.var_entry.variable_type
 						),
 						make_type_list(
 							make_name_type(
 								int_symbol,
-								int_symbol->environment_entry->u.var_entry
+								int_symbol->environment_entry->u.var_entry.variable_type
 							),
 							NULL
 						)
@@ -187,6 +210,7 @@ Environment make_standard_type_env(SemanticAnalyzer sem) {
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("string",
 			make_var_entry(
+				NULL,
 				sem->builtin_string_type
 			)
 		)
@@ -194,6 +218,7 @@ Environment make_standard_type_env(SemanticAnalyzer sem) {
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("int",
 			make_var_entry(
+				NULL,
 				sem->builtin_int_type
 			)
 		)
@@ -201,6 +226,7 @@ Environment make_standard_type_env(SemanticAnalyzer sem) {
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("integer",
 			make_var_entry(
+				NULL,
 				sem->builtin_int_type
 			)
 		)
@@ -208,6 +234,7 @@ Environment make_standard_type_env(SemanticAnalyzer sem) {
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("char",
 			make_var_entry(
+				NULL,
 				sem->builtin_char_type
 			)
 		)
@@ -215,6 +242,7 @@ Environment make_standard_type_env(SemanticAnalyzer sem) {
 	standard_type_env = insert_symbol(standard_type_env,
 		make_symbol("nil",
 			make_var_entry(
+				NULL,
 				sem->builtin_nil_type
 			)
 		)
@@ -228,17 +256,23 @@ SemanticAnalyzer begin_scope(SemanticAnalyzer sem) {
 		sem->scope_head = (Scope)checked_malloc(sizeof(struct Scope_));
 		sem->scope_head->var_environment = make_standard_var_env(sem);
 		sem->scope_head->type_environment = make_standard_type_env(sem);
+		sem->scope_head->escape_environment = make_environment(DEFAULT_CAPACITY, Escape_Env);
+		sem->scope_head->current_level = sem->outermost_level;
 		sem->scope_head->parent = NULL;
 		return sem;
 	}
+	
+
 	Scope new_scope = (Scope)checked_malloc(sizeof(struct Scope_));
 
-	
+	new_scope->escape_environment = clone_environment(sem->scope_head->escape_environment);	
 	new_scope->var_environment = clone_environment(sem->scope_head->var_environment);
 	new_scope->type_environment = clone_environment(sem->scope_head->type_environment);
 	new_scope->parent = sem->scope_head;
-	sem->scope_head = new_scope;
+	new_scope->current_level = sem->scope_head->current_level;
 
+	sem->scope_head = new_scope;
+	
 	return sem;
 }
 
@@ -266,6 +300,7 @@ SemanticAnalyzer make_semantic_analyzer(Parser parser) {
 	new_semantic_analyzer->builtin_void_type = make_void_type();
 	new_semantic_analyzer->builtin_nil_type = make_nil_type();
 	new_semantic_analyzer->builtin_error_type = make_error_type();
+	new_semantic_analyzer->outermost_level = Tr_outermost();
 
 	return new_semantic_analyzer;
 }
@@ -301,7 +336,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
 
-			Type environment_type = structure_symbol->environment_entry->u.var_entry;
+			Type environment_type = structure_symbol->environment_entry->u.var_entry.variable_type;
 
 			if (environment_type->kind == Array_Type) {
 				
@@ -332,7 +367,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
 
-			return make_exp_ty(NULL, actual_type(type_symbol->environment_entry->u.var_entry));
+			return make_exp_ty(NULL, actual_type(type_symbol->environment_entry->u.var_entry.variable_type));
 		}
 		case Record: {
 			string id = actual_field->u.record_field.type_id;
@@ -350,7 +385,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				);
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
-			Type record_symbol_type = record_symbol->environment_entry->u.var_entry;
+			Type record_symbol_type = actual_type(record_symbol->environment_entry->u.var_entry.variable_type);
 			if (record_symbol_type->kind != Record_Type) {
 				report_error(
 					TypeError,
@@ -368,6 +403,8 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 			TypeList new_header = NULL;
 			TypeList current_type = NULL;
 			int found = FALSE;
+
+
 			while (record_def_fields != NULL) {
 				A_Field current_field = record_def_fields->field;
 				string id = current_field->u.item_field.id;
@@ -376,8 +413,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				if (item->exp_type->kind == Error_Type)
 					return item;
 
-				TypeList field_info = record_symbol_type->u.record_type.types;
-				 
+					 
 				while (field_info != NULL) {
 					Type field_type = field_info->type;
 					if (strcmp(field_type->u.field_type.name, id) == 0) {
@@ -456,7 +492,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				);
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
-			Type record = actual_type(record_symbol->environment_entry->u.var_entry);
+			Type record = actual_type(record_symbol->environment_entry->u.var_entry.variable_type);
 			if (record->kind != Record_Type) {
 				report_error(
 					SyntaxError,
@@ -528,7 +564,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
 
-			return make_exp_ty(NULL, actual_type(symbol->environment_entry->u.var_entry));
+			return make_exp_ty(NULL, actual_type(symbol->environment_entry->u.var_entry.variable_type));
 		}
 		case Array_Exp: {
 			string type_id = literal->u.array_exp.type_id;
@@ -551,7 +587,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 				);
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
-			Type array_type = array_type_symbol->environment_entry->u.var_entry;
+			Type array_type = array_type_symbol->environment_entry->u.var_entry.variable_type;
 
 			if (match_types(array_type->u.array_type, init->exp_type) == FALSE) {
 				report_error(
@@ -753,7 +789,8 @@ Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 				return make_exp_ty(NULL, sem->builtin_error_type);
 			}
 
-			if (match_types(right->exp_type, sem->builtin_int_type) == FALSE) {
+			if (match_types(right->exp_type, sem->builtin_int_type) == FALSE && 
+			match_types(right->exp_type, sem->builtin_real_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -999,7 +1036,13 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 
 			Symbol low_symbol = get_symbol(sem->scope_head->var_environment, low_id);
 			if (low_symbol == NULL) {
-				low_symbol = make_symbol(low_id, make_var_entry(low_type->exp_type));
+				bool escape = true;
+				Symbol escape_symbol = get_symbol(sem->scope_head->escape_environment, low_id);
+				if (escape_symbol != NULL)
+					escape = escape_symbol->environment_entry->u.escape_entry.escapes;
+
+				Tr_Access low_access = Tr_allocLocal(sem->scope_head->current_level, escape);
+				low_symbol = make_symbol(low_id, make_var_entry(low_access, low_type->exp_type));
 				sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, low_symbol);
 			}
 			else {
@@ -1015,7 +1058,7 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 					return make_exp_ty(NULL, sem->builtin_error_type);
 				}
 				
-				low_symbol->environment_entry->u.var_entry = low_type->exp_type;
+				low_symbol->environment_entry->u.var_entry.variable_type = low_type->exp_type;
 			}
 	
 			Exp_Ty high_type = check_exp(expression->u.for_exp.high, sem);
@@ -1031,7 +1074,11 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 		case Let_Exp: {
 			printf("\n FOUND LET EXP\n");
 			sem = begin_scope(sem);
-			
+			sem->scope_head->escape_environment = analyze_escapes(
+				expression, 
+				sem->scope_head->escape_environment, 
+				0
+			);
 			A_DecList current_declaration = expression->u.let_exp.declarations;
 
 			while (current_declaration != NULL) {
@@ -1047,7 +1094,12 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 				if (declaration->kind == Type_Dec) {
 					string id = declaration->u.type_dec.name;
 					Symbol current_type_symbol = get_symbol(sem->scope_head->type_environment, id);
-					current_type_symbol->environment_entry->u.var_entry = handle_type_def(current_type_symbol, declaration, sem);
+					current_type_symbol->environment_entry->u.var_entry.variable_type = handle_type_def(
+						current_type_symbol, 
+						declaration, 
+						sem
+					);
+				
 				}
 				current_declaration = current_declaration->next;
 			}
@@ -1059,7 +1111,7 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 					Symbol symbol = get_symbol(sem->scope_head->type_environment, id);
 
 					
-					resolve_type(symbol->environment_entry->u.var_entry, sem, declaration->position);
+					resolve_type(symbol->environment_entry->u.var_entry.variable_type, sem, declaration->position);
 				}
 				current_declaration = current_declaration->next;
 			}
@@ -1139,7 +1191,7 @@ SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem) {
 			);
 		}
 		else
-			return_type = return_symbol->environment_entry->u.var_entry;
+			return_type = return_symbol->environment_entry->u.var_entry.variable_type;
 	}
 	
 	function_symbol->environment_entry->u.function_entry.return_type = return_type;
@@ -1147,21 +1199,74 @@ SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem) {
 	sem = begin_scope(sem);
 	TypeList parameters = function_symbol->environment_entry->u.function_entry.parameters;
 	
+	// Frame analysis stuff
+	
+	Tr_Level new_level = NULL;
+	BoolList escapees_head = NULL;
+	BoolList current_escapee = NULL;
 	while (parameters != NULL) {
 		Type parameter = parameters->type;
+		string parameter_name = parameter->u.field_type.name;
+
 		
 		
-		Symbol arg_symbol = make_symbol(
-			parameter->u.field_type.name,
-			make_var_entry(parameter->u.field_type.type)
+	
+		
+		bool escape = true;
+		Symbol escape_symbol = get_symbol(
+			sem->scope_head->escape_environment,
+			parameter_name
 		);
-		sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, arg_symbol);
-		printf("\nINSERTED SYMBOL %s with TYPE %d\n", arg_symbol->name, arg_symbol->environment_entry->u.var_entry->kind);
+
+		if (escape_symbol != NULL) {
+			escape = escape_symbol->environment_entry->u.escape_entry.escapes;
+			BoolList new_node = new_boollist(escape, NULL);
+
+			if (escapees_head == NULL) {
+				escapees_head = new_node;
+				current_escapee = escapees_head;
+			}
+			else {
+				current_escapee->next = new_node;
+				current_escapee = current_escapee->next;
+			}
+		}
+
 		parameters = parameters->next;
 	}
+	Tr_Level parent = sem->scope_head->current_level;
+	function_symbol->environment_entry->u.function_entry.label = make_new_temporary_namedlabel(
+		function_symbol->name
+	);
+
+	new_level = Tr_new_level(parent, function_symbol->environment_entry->u.function_entry.label, escapees_head);
+	function_symbol->environment_entry->u.function_entry.level = new_level;
+
+	sem->scope_head->current_level = new_level;
 	
+	Tr_AccessList tr_parameters = Tr_params(new_level);
+	parameters = function_symbol->environment_entry->u.function_entry.parameters;
+	
+	while (parameters != NULL && tr_parameters != NULL) {
+		Type parameter = parameters->type;
+		string parameter_name = parameter->u.field_type.name;
+		Type parameter_type = parameters->type;
+		Tr_Access param_access = tr_parameters->tree_access;
+
+		Symbol arg_symbol = make_symbol(
+			parameter_name,
+			make_var_entry(param_access, parameter_type->u.field_type.type)
+		);
+
+		sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, arg_symbol);
+		parameters = parameters->next;
+		tr_parameters = tr_parameters->next;
+	}
+
 	Exp_Ty block = check_exp(declaration->u.func_dec.block, sem);
-	if (match_types(block->exp_type, actual_type(function_symbol->environment_entry->u.function_entry.return_type)) == FALSE) {
+	Type actual_block_type = actual_type(block->exp_type);
+	Type actual_return_type = actual_type(function_symbol->environment_entry->u.function_entry.return_type);
+	if (match_types(actual_block_type, actual_return_type) == FALSE) {
 		report_error(
 			TypeError,
 			"(PLACEHOLDER)",
@@ -1176,19 +1281,29 @@ SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem) {
 }
 SemanticAnalyzer handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem) {
 	Symbol simple_var_symbol = get_symbol(sem->scope_head->var_environment, declaration->u.simple_var_dec.id);
-
-
+	Symbol simple_var_escape_symbol = get_symbol(sem->scope_head->escape_environment, declaration->u.simple_var_dec.id);
+	bool escape = true;
+	if (simple_var_escape_symbol != NULL)
+		escape = simple_var_escape_symbol->environment_entry->u.escape_entry.escapes;
+	
+	Tr_Access simple_access = Tr_allocLocal(sem->scope_head->current_level, escape);
+	
 
 	Exp_Ty result = check_exp(declaration->u.simple_var_dec.val, sem);
-	simple_var_symbol->environment_entry->u.var_entry = result->exp_type;
+	simple_var_symbol->environment_entry->u.var_entry.variable_type = result->exp_type;
+	simple_var_symbol->environment_entry->u.var_entry.access = simple_access;
 
 	return sem;
 }
 SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) {
 	A_Field dec_field = declaration->u.field_var_dec.field;
 	Symbol field_symbol = get_symbol(sem->scope_head->var_environment, dec_field->u.ty_field.id);
+	Symbol field_escape_symbol = get_symbol(sem->scope_head->escape_environment, dec_field->u.ty_field.id);
+	bool escape = true;
+	if (field_escape_symbol != NULL) 
+		escape = field_escape_symbol->environment_entry->u.escape_entry.escapes;
 	
-	
+	Tr_Access var_access =  Tr_allocLocal(sem->scope_head->current_level, escape);
 	
 	Type field_res = NULL;
 
@@ -1208,7 +1323,7 @@ SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) 
 		field_res = sem->builtin_error_type;
 	}
 	else 
-		field_res = type_symbol->environment_entry->u.var_entry;
+		field_res = type_symbol->environment_entry->u.var_entry.variable_type;
 
 	Exp_Ty value_result = check_exp(declaration->u.field_var_dec.val, sem);
 	if (match_types(actual_type(field_res), actual_type(value_result->exp_type)) == FALSE) {
@@ -1220,11 +1335,11 @@ SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) 
 			"Mismatched types",
 			panic_mode
 		);
-		field_symbol->environment_entry->u.var_entry = sem->builtin_error_type;
+		field_symbol->environment_entry->u.var_entry.variable_type = sem->builtin_error_type;
 		return sem;
 	}
-
-	field_symbol->environment_entry->u.var_entry = field_res;
+	field_symbol->environment_entry->u.var_entry.access = var_access;
+	field_symbol->environment_entry->u.var_entry.variable_type = field_res;
 	return sem;
 }
 SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
@@ -1254,10 +1369,10 @@ SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
 			);
 		}
 		else {
-			actual_result_type = make_field_type(id, arg_type_symbol->environment_entry->u.var_entry);
+			actual_result_type = make_field_type(id, arg_type_symbol->environment_entry->u.var_entry.variable_type);
 			
 		}
-		Symbol argument_symbol = make_symbol(args->field->u.ty_field.id, make_var_entry(actual_result_type));
+		Symbol argument_symbol = make_symbol(args->field->u.ty_field.id, make_var_entry(NULL, actual_result_type));
 		
 
 
@@ -1291,7 +1406,7 @@ SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
 
 		}
 		else 
-			function_symbol->environment_entry->u.function_entry.return_type = return_symbol->environment_entry->u.var_entry;
+			function_symbol->environment_entry->u.function_entry.return_type = return_symbol->environment_entry->u.var_entry.variable_type;
 
 	}
 	else
@@ -1320,7 +1435,7 @@ Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticA
 			);
 			return sem->builtin_error_type;
 		}
-		result = make_array_type(resulting_symbol->environment_entry->u.var_entry);
+		result = make_array_type(resulting_symbol->environment_entry->u.var_entry.variable_type);
 	}
 	else if (current_dec_field->kind == Ty_Field) {
 		resulting_symbol = get_symbol(type_environment, current_dec_field->u.ty_field.type);
@@ -1336,7 +1451,7 @@ Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticA
 			);
 			return sem->builtin_error_type;
 		}
-		result = make_name_type(current_symbol, resulting_symbol->environment_entry->u.var_entry);
+		result = make_name_type(current_symbol, resulting_symbol->environment_entry->u.var_entry.variable_type);
 	}
 	else if (current_dec_field->kind == Ty_Record) {
 		A_FieldList current_field = current_dec_field->u.type_record_field.record_type_fields;
@@ -1358,7 +1473,7 @@ Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticA
 			}
 			Type field_type = make_field_type(
 				ty_field->u.ty_field.id,
-				resulting_symbol->environment_entry->u.var_entry
+				resulting_symbol->environment_entry->u.var_entry.variable_type
 			);
 			if (header == NULL)  {
 				header = make_type_list(field_type, NULL);
@@ -1437,7 +1552,7 @@ SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem) {
 				return sem;
 			}
 
-			Symbol type_header = make_symbol(id, make_var_entry(sem->builtin_error_type));
+			Symbol type_header = make_symbol(id, make_var_entry(NULL, sem->builtin_error_type));
 			
 			sem->scope_head->type_environment = insert_symbol(sem->scope_head->type_environment, type_header);
 			break;
@@ -1456,7 +1571,7 @@ SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem) {
 				return sem;
 			}
 
-			Symbol function_header = make_symbol(id, make_function_entry(NULL, NULL));
+			Symbol function_header = make_symbol(id, make_function_entry(NULL, NULL, NULL, NULL));
 			sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, function_header);
 			break;
 		}
@@ -1473,7 +1588,7 @@ SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem) {
 				);
 				return sem;
 			}
-			Symbol simple_var_header = make_symbol(id, make_var_entry(sem->builtin_error_type));
+			Symbol simple_var_header = make_symbol(id, make_var_entry(NULL, sem->builtin_error_type));
 			sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, simple_var_header);
 			break;
 		}
@@ -1492,7 +1607,7 @@ SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem) {
 					);
 					return sem;
 				}
-				Symbol field_var_header = make_symbol(id, make_var_entry(sem->builtin_error_type));
+				Symbol field_var_header = make_symbol(id, make_var_entry(NULL, sem->builtin_error_type));
 				sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, field_var_header);
 			}
 			break;

@@ -1,21 +1,24 @@
+#ifndef _FRAME_H_
+#define _FRAME_H_
+
 #include "util.h"
 #include "semant/temp.h"
 
 typedef struct Frame_* Frame;
-typedef struct Access_* Access;
-typedef struct AccessList_* AccessList;
+typedef struct F_Access_* F_Access;
+typedef struct F_AccessList_* F_AccessList;
 
 
-struct AccessList_ {
-	Access access;
-	AccessList next;
+struct F_AccessList_ {
+	F_Access access;
+	F_AccessList next;
 };
 
-Frame new_frame(TempLabel frame_name, AccessList params, AccessList locals);
-Frame frame_static_link(Frame frame);
+
+Frame new_frame(TempLabel frame_name, BoolList params);
 TempLabel frame_name(Frame frame);
-AccessList frame_parameters(Frame frame);
-Access local_alloc(Frame frame, bool escape);
+F_AccessList frame_parameters(Frame frame);
+F_Access frame_local_alloc(Frame frame, bool escape);
 
 
-
+#endif
