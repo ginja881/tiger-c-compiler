@@ -1,0 +1,9 @@
+
+
+let
+	var x := 1
+	var y:= 2
+	function f() : int = x + y
+in
+	if x = y then f() else f()
+end

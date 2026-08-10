@@ -28,6 +28,7 @@ struct SemanticAnalyzer_ {
 	Type builtin_void_type;
 	Type builtin_error_type;
 	Tr_Level outermost_level;
+
 };
 
 typedef struct Scope_* Scope;

@@ -35,15 +35,15 @@ enum Tr_Relop {
 };
 
 // Type aliases  
-typedef struct Tr_Stm_* Tr_Stm;
-typedef struct Tr_StmList_* Tr_StmList;
+typedef struct T_Stm_* T_Stm;
+typedef struct T_StmList_* T_StmList;
 
-typedef struct Tr_Exp_* Tr_Exp;
-typedef struct Tr_ExpList_* Tr_ExpList;
+typedef struct T_Exp_* T_Exp;
+typedef struct T_ExpList_* T_ExpList;
 
 
 // IR expressions
-struct Tr_Exp_ {
+struct T_Exp_ {
 	enum {
 		TR_BINOP,
 		TR_TEMP,
@@ -55,33 +55,33 @@ struct Tr_Exp_ {
 
 	union {
 		int constant;
-		struct {Tr_Exp op1; Tr_Exp op2; Tr_Binop op;} binop;
+		struct {T_Exp op1; T_Exp op2; T_Binop op;} binop;
 		Temp temp;
 		TempLabel name;
-		struct {Tr_Exp function_name; Tr_ExpList arguments;} call_exp;
-		Tr_Exp mem;
-		struct {Tr_Stm statement; Tr_Exp next;} seq_exp;
+		struct {T_Exp function_name; T_ExpList arguments;} call_exp;
+		T_Exp mem;
+		struct {T_Stm statement; T_Exp next;} seq_exp;
 	} u;
 };
 
-struct Tr_ExpList_ {
-	Tr_Exp tr_exp;
-	Tr_ExpList next;
+struct T_ExpList_ {
+	T_Exp tr_exp;
+	T_ExpList next;
 };
 
 // Constructors
-Tr_Exp Tr_make_constant(int constant);
-Tr_Exp Tr_make_binop(Tr_Exp op1, Tr_Binop op, Tr_Exp op2);
-Tr_Exp Tr_make_name(TempLabel label);
-Tr_Exp Tr_make_call(Tr_Exp function_name, Tr_ExpList arguments);
-Tr_Exp Tr_make_mem(Tr_Exp mem);
-Tr_Exp Tr_make_seq_exp(Tr_Stm statement, Tr_Exp next);
+T_Exp Tr_make_constant(int constant);
+T_Exp Tr_make_binop(T_Exp op1, Tr_Binop op, T_Exp op2);
+T_Exp Tr_make_name(TempLabel label);
+T_Exp Tr_make_call(T_Exp function_name, T_ExpList arguments);
+T_Exp Tr_make_mem(T_Exp mem);
+T_Exp Tr_make_seq_exp(T_Stm statement, T_Exp next);
 
-Tr_ExpList Tr_make_explist(Tr_Exp tr_exp, Tr_ExpList next);
+T_ExpList Tr_make_explist(T_Exp tr_exp, T_ExpList next);
 
 
 // IR statements
-struct Tr_Stm_ {
+struct T_Stm_ {
 	enum {
 	    TR_MOVE,
 	    TR_EXP,
@@ -91,28 +91,28 @@ struct Tr_Stm_ {
 	    TR_SEQ
 	} kind;
 	union {
-		struct {Tr_Exp source; Tr_Exp result;} move;
-		Tr_Exp exp;
-		struct {Tr_Exp destination, TempLabelList labels;} jump;
-		struct {Tr_Relop op; Tr_Exp left; Tr_Exp right; TempLabel true_dest; TempLabel false_dest;} cjump;
+		struct {T_Exp source; T_Exp result;} move;
+		T_Exp exp;
+		struct {T_Exp destination, TempLabelList labels;} jump;
+		struct {T_Relop op; T_Exp left; T_Exp right; TempLabel true_dest; TempLabel false_dest;} cjump;
 		TempLabel label;
-		struct {Tr_Stm stm; Tr_Stm next;} seq;
+		struct {T_Stm stm; T_Stm next;} seq;
 	} u;
 };
 
-struct Tr_StmList_ {
-	Tr_Stm stm;
-	Tr_StmList next;
+struct T_StmList_ {
+	T_Stm stm;
+	T_StmList next;
 };
 
 // Constructors
-Tr_Stm Tr_make_move_stm(Tr_Exp source, Tr_Exp result);
-Tr_Stm Tr_make_exp_stm(Tr_Exp exp);
-Tr_Stm Tr_make_jump(Tr_Exp destination, TempLabelList label);
-Tr_Stm Tr_make_cjump(Tr_Relop op, Tr_Exp left, Tr_Exp right, TempLabel true_dest, TempLabel false_dest);
-Tr_Stm Tr_make_label(TempLabel label);
-Tr_Stm Tr_make_stm_seq(Tr_Stm stm, Tr_Stm next);
+T_Stm Tr_make_move_stm(T_Exp source, T_Exp result);
+T_Stm Tr_make_exp_stm(T_Exp exp);
+T_Stm Tr_make_jump(T_Exp destination, TempLabelList label);
+T_Stm Tr_make_cjump(Tr_Relop op, T_Exp left, T_Exp right, TempLabel true_dest, TempLabel false_dest);
+T_Stm Tr_make_label(TempLabel label);
+T_Stm Tr_make_stm_seq(T_Stm stm, T_Stm next);
 
-Tr_StmList Tr_make_stmlist(Tr_Stm stm, Tr_StmList next);
+T_StmList Tr_make_stmlist(T_Stm stm, T_StmList next);
 
 #endif

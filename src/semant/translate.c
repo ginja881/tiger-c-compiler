@@ -71,3 +71,62 @@ Tr_Access Tr_allocLocal(Tr_Level level, bool escape) {
 
 	return IR_access;
 }
+
+
+static T_Cx Tr_CX(Tr_PatchList trues, Tr_PatchList falses, T_Stm stm) {
+	T_Cx new_cx = (T_Cx)checked_malloc(sizeof(struct T_Cx_));
+	new_cx->trues = trues;
+	new_cx->falses = falses;
+	new_cx->stm = stm;
+
+	return new_cx;
+};
+
+static Tr_Exp Tr_CxExp(T_Cx conditional) {
+	Tr_Exp new_cx_exp = (Tr_Exp)checked_malloc(sizeof(struct Tr_Exp_));
+	new_cx_exp->kind = CX;
+	new_cx_exp->u.cx = conditional;
+
+	return new_exp;
+};
+
+static Tr_Exp Tr_NxExp(T_Stm statement) {
+	Tr_Exp new_nx_exp = (Tr_Exp)checked_malloc(sizeof(struct Tr_Exp_));
+	new_nx_exp->kind = NX;
+	new_nx_exp->u.nx = statement;
+
+	return new_nx_exp;
+};
+
+static Tr_Exp Tr_ExExp(T_Exp expression) {
+	Tr_Exp new_ex_exp = (Tr_Exp)checked_malloc(sizeof(struct Tr_Exp_));
+	new_ex_exp->kind = EX;
+	new_ex_exp->u.ex = expression;
+
+	return new_ex_exp;
+};
+
+static T_Cx unCx(Tr_Exp tr_exp) {
+    switch (tr_exp->kind) {
+    	case CX:
+		return tr_exp->u.cx;
+	case EX:
+		return  
+	default:
+		return NULL;
+		
+    };
+
+    return NULL;
+};
+
+static Tr_PatchList Tr_newPatchList(TempLabel label, Tr_PatchList next) {
+	Tr_PatchList new_patchlist_node = (Tr_PatchList)checked_malloc(sizeof(struct Tr_PatchList_));
+	new_patchlist_node->label = label;
+	new_patchlist_node->next = next;
+
+	return new_patchlist;
+}
+
+
+
