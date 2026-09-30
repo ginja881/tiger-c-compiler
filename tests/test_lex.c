@@ -135,9 +135,6 @@ void print_token_type(int lex_token) {
 	    case ID:
 	        token = "ID";
 		break;
-	    case REAL:
-	        token = "REAL";
-		break;
 	    case NUM:
 	    	token = "NUM";
 		break;

@@ -89,7 +89,6 @@ identifiers [a-zA-Z_]([a-zA-Z_0-9])*
 <INITIAL>of			{ advance(); return OF;}
 <INITIAL>array			{ advance(); return ARRAY;}
 <INITIAL>{identifiers}		{ advance(); return ID; }
-<INITIAL>{digits}"."{digits}	{ advance(); return REAL; }
 <INITIAL>{digits}		{ advance(); return NUM; } 
 <INITIAL>\"			{       
                                         lexer->current_input_size = 0;

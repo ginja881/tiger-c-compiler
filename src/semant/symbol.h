@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef __ENV_H__
 #define __ENV_H__
 
@@ -7,6 +9,7 @@
 
 #include "util.h"
 #include "semant/types.h"
+#include "semant/temp.h"
 #include "semant/translate.h"
 
 typedef enum {

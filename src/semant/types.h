@@ -11,7 +11,6 @@ struct Type_ {
 	enum {
 		Int_Type, 
 		String_Type,
-		Real_Type,
 		Char_Type,
 		Array_Type, 
 		Record_Type, 
@@ -73,12 +72,12 @@ typedef enum {
 	X(OP_COMPAR_AND, COMPAR_OP) \
 	X(OP_COMPAR_OR, COMPAR_OP) \
 	X(OP_COMPAR_NOT_EQ, COMPAR_OP) 
+
 Type make_nil_type(void);
 Type make_void_type(void);
 Type make_int_type(void);
 Type make_string_type(void);
 Type make_char_type(void);
-Type make_real_type(void);
 Type make_error_type(void);
 Type make_array_type(Type element_type);
 Type make_field_type(string name, Type type);
@@ -89,7 +88,7 @@ TypeList make_type_list(Type type, TypeList next);
 Type actual_type(Type type); 
 
 int match_types(Type type1, Type type2);
-size_t type_cost(Type type1);
+int type_cost(Type type1);
 
 Op_Class op_class(A_Op operation);
 

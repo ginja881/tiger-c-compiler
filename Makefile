@@ -14,7 +14,7 @@ UTIL = $(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 LEXICAL_DEPENDENCIES = $(SRC_DIR)/lex/lex.yy.c $(SRC_DIR)/lex/tokens.c
 PARSER_DEPENDENCIES =  $(SRC_DIR)/parser/ast.c
 SEMANT_DEPENDENCIES :=  $(SRC_DIR)/semant/types.c $(SRC_DIR)/semant/symbol.c $(SRC_DIR)/semant/escape.c $(SRC_DIR)/semant/temp.c
-SEMANT_DEPENDENCIES += $(SRC_DIR)/semant/mipsframe.c $(SRC_DIR)/semant/translate.c $(SRC_DIR)/semant/semant.c
+SEMANT_DEPENDENCIES += $(SRC_DIR)/semant/mipsframe.c $(SRC_DIR)/semant/tree.c $(SRC_DIR)/semant/translate.c $(SRC_DIR)/semant/semant.c
 
 OVERALL_DEPENDENCIES = $(LEXICAL_DEPENDENCIES) $(SEMANT_DEPENDENCIES) $(PARSER_DEPENDENCIES) 
 
@@ -43,5 +43,8 @@ clean:
 	fi;
 	@echo CLEANED
 
-debug-parser: $(BUILD_DIR)/$(TEST_DIR)/test_parser.o
-	@valgrind --leak-check=full --show-leak-kinds=all $<  $(TEST_DIR)/source_files/merge.tig
+
+
+debug:
+	@valgrind --leak-check=full --show-leak-kinds=all $(BUILD_DIR)/compiler  $(TEST_DIR)/source_files/merge.tig
+

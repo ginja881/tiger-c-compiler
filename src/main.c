@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
     
     SemanticAnalyzer sem = make_semantic_analyzer(parser);
     printf("\n Calling semantic\n");
-    semantic_main(sem);
+    TreeIR IR_root = semantic_main(sem);
 
     printf("\n DONE\n");
     return EXIT_SUCCESS;

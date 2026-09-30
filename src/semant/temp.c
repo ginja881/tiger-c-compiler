@@ -1,7 +1,8 @@
 #include "semant/temp.h"
+#include "semant/symbol.h"
 static int temp_count = 0;
 
-Temp make_new_temp(void) {
+Temp make_new_temporary(void) {
 	Temp new_temp = (Temp) checked_malloc(sizeof(struct Temp_));
 	new_temp->num = temp_count++;
 	return new_temp;

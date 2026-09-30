@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef __AST_H__
 #define __AST_H__
 
@@ -65,7 +67,6 @@ struct A_Exp_ {
      	ID_Exp, 
 	Num_Exp, 
 	NIL_Exp, 
-	Real_Exp, 
 	Op_Exp, 
 	Callee_Exp,
 	Bool_Exp,
@@ -87,7 +88,6 @@ struct A_Exp_ {
      union {
      	struct {string identifier;} id_exp;
 	struct {int value;} num_exp;
-	struct {double value;} real_exp;
 	struct {int boolean;} bool_exp;
 	struct {A_Op op; struct A_Exp_* exp; int postfix;} unary_exp;
 	struct {A_Op op; struct A_Exp_* exp1; struct A_Exp_* exp2;} op_exp;
@@ -103,7 +103,7 @@ struct A_Exp_ {
 	struct {struct A_Exp_* identifier; struct A_Exp_* val;} assign_exp;
 	struct {struct A_Exp_* low_id; struct A_Exp_* low; struct A_Exp_* high; struct A_Exp_* block;} for_exp;
 	struct {struct A_DecList_* declarations; struct A_Exp_* block;} let_exp;
-
+	
      } u;
 };
 
@@ -206,7 +206,6 @@ A_Pos make_pos(size_t line_pos, size_t col_pos);
 
 A_Exp make_id_exp(string id, A_Pos position);
 A_Exp make_num_exp(int num, A_Pos position);
-A_Exp make_real_exp(double value, A_Pos position);
 A_Exp make_nil_exp(A_Pos position);
 A_Exp make_bool_exp(int boolean, A_Pos position);
 A_Exp make_char_exp(char character, A_Pos position);

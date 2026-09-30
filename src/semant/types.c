@@ -3,14 +3,14 @@ Type make_nil_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = NIL_Type;
 	new_type->state = Resolved;
-
+	
 	return new_type;
 }
 Type make_void_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = Void_Type;
 	new_type->state = Resolved;
-
+	
 	return new_type;
 }
 Type make_int_type(void) {
@@ -20,19 +20,13 @@ Type make_int_type(void) {
 
 	return new_type;
 }
-Type make_real_type(void) {
-	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
-	new_type->kind = Real_Type;
-	new_type->state = Resolved;
 
-	return new_type;
-}
 
 Type make_string_type(void) {
 	Type new_type = (Type)checked_malloc(sizeof(struct Type_));
 	new_type->kind = String_Type;
 	new_type->state = Resolved;
-
+	
 	return new_type;
 }
 
@@ -136,30 +130,23 @@ int match_types(Type type1, Type type2) {
 
 	return FALSE;
 }
-size_t type_cost(Type type1) {
+int type_cost(Type type1) {
 	if (type1 == NULL)
 		return 0;
 
 	switch(type1->kind) {
 		case Void_Type: return 0;
 		case NIL_Type: return 0;
-		case Int_Type: return sizeof(int);
-		case Char_Type: return sizeof(char);
-		case Real_Type: return sizeof(double);
-		case Array_Type: return type_cost(type1->u.array_type) * 10;
+		case Int_Type: return 4;
+		case Char_Type: return 1;
+		case String_Type: return 4;
+		case Array_Type: return 4;
+		case Name_Type: return type_cost(type1->u.name_type.type);
 		case Field_Type: return type_cost(type1->u.field_type.type);
-		case Record_Type: {
-			size_t total_cost = 0;
-			TypeList current_type = type1->u.record_type.types;
-			while (current_type != NULL) {
-				total_cost += type_cost(current_type->type);
-				current_type = current_type->next;
-			}
-			return total_cost;
-		}
+		case Record_Type: return 4;
 		default: break;
 	}
-	return -1;
+	return 0;
 }
 Op_Class  op_class(A_Op operation) {
 	#define X(ast_op, class_op) \

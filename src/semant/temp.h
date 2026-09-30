@@ -1,8 +1,9 @@
+#pragma once
+
 #ifndef _TEMP_H_
 #define _TEMP_H_
 
 #include "util.h"
-#include "symbol.h"
 
 
 
@@ -13,7 +14,7 @@ struct Temp_ {
 Temp make_new_temporary(void);
 
 
-typedef Symbol TempLabel;
+typedef struct Symbol_* TempLabel;
 TempLabel make_new_temporary_label(void);
 TempLabel make_new_temporary_namedlabel(string name);
 string templabel_name(TempLabel label);

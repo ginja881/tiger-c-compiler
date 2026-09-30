@@ -1,11 +1,21 @@
 #include "semant/semant.h"
 
-Exp_Ty make_exp_ty(Tr_Exp main_exp, Type exp_type) {
-    Exp_Ty new_exp = (Exp_Ty)checked_malloc(sizeof(struct Exp_Ty_));
-    new_exp->main_exp = main_exp;
-    new_exp->exp_type = exp_type;
+TreeIR make_tree_ir_exp(Tr_Exp exp_ir, Type exp_type) {
+    TreeIR new_exp = (TreeIR)checked_malloc(sizeof(struct TreeIR_));
+    new_exp->kind = TreeExp;
+    new_exp->u.expression.exp_ir = exp_ir;
+    new_exp->u.expression.exp_type = exp_type;
 
     return new_exp;
+}
+
+TreeIR make_tree_ir_compound(TreeIR exp1, TreeIR exp2) {
+	TreeIR new_compound = (TreeIR)checked_malloc(sizeof(struct TreeIR_));
+	new_compound->kind = TreeCompound;
+	new_compound->u.compound.exp1 = exp1;
+	new_compound->u.compound.exp2 = exp2;
+
+	return new_compound;
 }
 
 Environment make_standard_var_env(SemanticAnalyzer sem) {
@@ -294,34 +304,35 @@ SemanticAnalyzer make_semantic_analyzer(Parser parser) {
 
 	new_semantic_analyzer->builtin_string_type = make_string_type();
 	new_semantic_analyzer->builtin_int_type = make_int_type();
-	new_semantic_analyzer->builtin_real_type = make_real_type();
-
+	
 	new_semantic_analyzer->builtin_char_type = make_char_type();
 	new_semantic_analyzer->builtin_void_type = make_void_type();
 	new_semantic_analyzer->builtin_nil_type = make_nil_type();
 	new_semantic_analyzer->builtin_error_type = make_error_type();
 	new_semantic_analyzer->outermost_level = Tr_outermost();
+	new_semantic_analyzer->ir_root = NULL;
 
 	return new_semantic_analyzer;
 }
-Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
+TreeIR check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 	A_Field actual_field = field->u.field_exp.field;
+	Scope current_scope = peek_scope(sem);
 	switch (actual_field->kind) {
 		case Subscript_Field: {
 			string id = actual_field->u.subscript_field.id;
 			A_Exp location_exp = actual_field->u.subscript_field.loc;
 
-			Symbol structure_symbol = get_symbol(sem->scope_head->var_environment, id);
+			Symbol structure_symbol = get_symbol(current_scope->var_environment, id);
 			if (structure_symbol == NULL) {
 				report_error(
 					UnknownError,
 					"(PLACEHOLDER",
 					field->position->line_pos,
 					field->position->col_pos,
-					"UNDEFINED RECORD/ARRAY",
+					"UNDEFINED ARRAY",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
 			if (structure_symbol->environment_entry->kind != Var_Entry) {
@@ -330,24 +341,46 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"(PLACEHOLDER)",
 					field->position->line_pos,
 					field->position->col_pos,
-					"UNDEFINED RECORD/ARRAY",
+					"UNDEFINED ARRAY",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-
-			Type environment_type = structure_symbol->environment_entry->u.var_entry.variable_type;
+			
+			Type environment_type = actual_type(structure_symbol->environment_entry->u.var_entry.variable_type);
+			
 
 			if (environment_type->kind == Array_Type) {
 				
-				Exp_Ty location = check_exp(location_exp, sem);
-
-				if (location->exp_type->kind == Error_Type)
+				TreeIR location = check_exp(location_exp, sem);
+				
+				if (location->u.expression.exp_type->kind == Error_Type)
 					return location;
 				
-				return make_exp_ty(NULL, environment_type->u.array_type);
+				Type element_type = actual_type(environment_type->u.array_type);
+				int element_size = type_cost(element_type);
+				Tr_Level current_level = current_scope->current_level;
+				Tr_Access variable_access = structure_symbol->environment_entry->u.var_entry.access;
+
+				return make_tree_ir_exp(
+					Tr_translateArrayAccess(
+						Tr_translateVariableAccess(
+							variable_access,
+							current_level,
+							type_cost(environment_type)
+						),
+						location->u.expression.exp_ir,
+						element_size
+					), 
+					environment_type->u.array_type
+				);
 			}
-			return make_exp_ty(NULL, sem->builtin_error_type);
+
+			
+			return make_tree_ir_exp(
+				NULL,
+				sem->builtin_error_type
+			);
 			
 		}
 		case Ty_Field: {
@@ -364,10 +397,11 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Type does not exist",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
+			Type actual_field_type = actual_type(type_symbol->environment_entry->u.var_entry.variable_type);
 
-			return make_exp_ty(NULL, actual_type(type_symbol->environment_entry->u.var_entry.variable_type));
+			return make_tree_ir_exp(NULL, actual_field_type);
 		}
 		case Record: {
 			string id = actual_field->u.record_field.type_id;
@@ -383,7 +417,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Record type does not exist",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			Type record_symbol_type = actual_type(record_symbol->environment_entry->u.var_entry.variable_type);
 			if (record_symbol_type->kind != Record_Type) {
@@ -395,7 +429,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Expected record type, but found something else",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
 			TypeList field_info = record_symbol_type->u.record_type.types;
@@ -403,24 +437,25 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 			TypeList new_header = NULL;
 			TypeList current_type = NULL;
 			int found = FALSE;
-
-
+			int field_pos = 0;
+			IRList itemlist = NULL;
+			IRList itemtail = NULL;
 			while (record_def_fields != NULL) {
 				A_Field current_field = record_def_fields->field;
 				string id = current_field->u.item_field.id;
 
-				Exp_Ty item = check_exp(current_field->u.item_field.value, sem);
-				if (item->exp_type->kind == Error_Type)
+				TreeIR item = check_exp(current_field->u.item_field.value, sem);
+				if (item->u.expression.exp_type->kind == Error_Type)
 					return item;
 
-					 
+				
 				while (field_info != NULL) {
 					Type field_type = field_info->type;
 					if (strcmp(field_type->u.field_type.name, id) == 0) {
 						if (field_type->kind == Error_Type)
-							return make_exp_ty(NULL, field_type);
+							return make_tree_ir_exp(NULL, field_type);
 
-						if (match_types(field_type->u.field_type.type, item->exp_type) == FALSE) {
+						if (match_types(field_type->u.field_type.type, item->u.expression.exp_type) == FALSE) {
 							report_error(
 								TypeError,
 								"(PLACEHOLDER)",
@@ -429,8 +464,9 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 								"Type mismatch in record fields",
 								panic_mode
 							);
-							return make_exp_ty(NULL, sem->builtin_error_type);
+							return make_tree_ir_exp(NULL, sem->builtin_error_type);
 						}
+						
 						found = TRUE;
 						break;
 					}
@@ -446,8 +482,11 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 						current_type->next = make_type_list(field_info->type, NULL);
 						current_type = current_type->next;
 					}
+					
+					append_node(Tr_makeIRList(item->u.expression.exp_ir, NULL), &(itemlist), &(itemtail));
+					field_pos++;
 				}
-
+				
 				record_def_fields = record_def_fields->next;
 				found = FALSE;
 			}
@@ -461,14 +500,14 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Incorrect definition",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-			return make_exp_ty(NULL, make_record_type(new_header));
+			return make_tree_ir_exp(Tr_translateRecord(itemlist, field_pos + 1), make_record_type(new_header));
 		}
 		case Ref_Field: {
 			A_Exp left_id = actual_field->u.ref_field.left_id;
 			A_Exp right_id = actual_field->u.ref_field.right_id;
-
+			
 			Symbol record_symbol = get_symbol(sem->scope_head->var_environment, left_id->u.id_exp.identifier);
 			if (record_symbol == NULL) {
 				report_error(
@@ -479,7 +518,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Undefined record",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			if (record_symbol->environment_entry->kind != Var_Entry) {
 				report_error(
@@ -490,7 +529,7 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Expected variable, but got functtion",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			Type record = actual_type(record_symbol->environment_entry->u.var_entry.variable_type);
 			if (record->kind != Record_Type) {
@@ -502,18 +541,27 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 					"Expected record",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			TypeList fields = record->u.record_type.types;
+			Tr_Exp record_access = Tr_translateVariableAccess(
+				record_symbol->environment_entry->u.var_entry.access,
+				current_scope->current_level,
+				type_cost(record)
+			);
 
+			int field_pos = 0;
 			while (fields != NULL) {
 				Type actual_field_type = fields->type;
 				if (strcmp(actual_field_type->u.field_type.name, right_id->u.id_exp.identifier) == 0) 
-					return make_exp_ty(NULL, actual_field_type->u.field_type.type);
-
+					return make_tree_ir_exp(
+						Tr_translateFieldReference(record_access, field_pos), 
+						actual_field_type->u.field_type.type
+					);
+				field_pos++;
 				fields = fields->next;	
 			}
-
+			
 			report_error(
 				TypeError,
 				"(PLACEHOLDER)",
@@ -523,23 +571,24 @@ Exp_Ty check_field_exp(A_Exp field, SemanticAnalyzer sem) {
 				panic_mode
 			);
 
-			return make_exp_ty(NULL, sem->builtin_error_type);
+			return make_tree_ir_exp(NULL, sem->builtin_error_type);
 		}
-		default: return make_exp_ty(NULL, sem->builtin_error_type);
+		default: return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
-	return make_exp_ty(NULL, sem->builtin_error_type);
+	return make_tree_ir_exp(NULL, sem->builtin_error_type);
 }
-Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
+TreeIR check_literals(A_Exp literal, SemanticAnalyzer sem) {
+	Scope current_scope = peek_scope(sem);
 	switch (literal->kind) {
-		case Real_Exp: return make_exp_ty(NULL, sem->builtin_real_type);
-		case Num_Exp: return make_exp_ty(NULL, sem->builtin_int_type);
-		case Bool_Exp: return make_exp_ty(NULL, sem->builtin_int_type);
-		case Char_Exp: return make_exp_ty(NULL, sem->builtin_char_type);
-		case String_Exp: return  make_exp_ty(NULL, sem->builtin_string_type);
-		case NIL_Exp: return make_exp_ty(NULL, sem->builtin_nil_type);
+		case Num_Exp: return make_tree_ir_exp(Tr_translateInteger(literal->u.num_exp.value), sem->builtin_int_type);
+		case Bool_Exp: return make_tree_ir_exp(Tr_translateInteger(literal->u.bool_exp.boolean), sem->builtin_int_type);
+		case Char_Exp: return make_tree_ir_exp(Tr_translateCharacter(literal->u.char_exp.character), sem->builtin_char_type);
+		case String_Exp: return  make_tree_ir_exp(Tr_translateString(literal->u.string_exp.text), sem->builtin_string_type);
+		case NIL_Exp: return make_tree_ir_exp(NULL, sem->builtin_nil_type);
 		case ID_Exp: {
 			string id = literal->u.id_exp.identifier;
-			Symbol symbol = get_symbol(sem->scope_head->var_environment, id);
+			
+			Symbol symbol = get_symbol(current_scope->var_environment, id);
 			if (symbol == NULL) {
 				report_error(
 					UnknownError,
@@ -549,7 +598,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"UNDEFINED INSTANCE",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
 			if (symbol->environment_entry->kind != Var_Entry) {
@@ -561,19 +610,31 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"UNEXPECTED INSTANCE THAT IS NOT VARIABLE",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
+			Type actual_variable_type = actual_type(symbol->environment_entry->u.var_entry.variable_type);
 
-			return make_exp_ty(NULL, actual_type(symbol->environment_entry->u.var_entry.variable_type));
+			return make_tree_ir_exp(
+				Tr_translateVariableAccess(
+					symbol->environment_entry->u.var_entry.access, 
+					current_scope->current_level,
+					type_cost(actual_variable_type)
+				), 
+				actual_variable_type
+			);
 		}
 		case Array_Exp: {
 			string type_id = literal->u.array_exp.type_id;
-			Exp_Ty init = check_exp(literal->u.array_exp.init, sem);
-			Exp_Ty size = check_exp(literal->u.array_exp.size, sem);
-			if (init->exp_type->kind == Error_Type || size->exp_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
+			TreeIR init = check_exp(literal->u.array_exp.init, sem);
+			TreeIR size = check_exp(literal->u.array_exp.size, sem);
+			if (init == NULL || size == NULL)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 
-			Symbol array_type_symbol = get_symbol(sem->scope_head->type_environment, type_id);
+			if (init->u.expression.exp_type->kind == Error_Type || 
+			size->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+
+			Symbol array_type_symbol = get_symbol(current_scope->type_environment, type_id);
 			
 
 			if (array_type_symbol == NULL) {
@@ -585,11 +646,11 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Unknown type",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			Type array_type = array_type_symbol->environment_entry->u.var_entry.variable_type;
 
-			if (match_types(array_type->u.array_type, init->exp_type) == FALSE) {
+			if (match_types(array_type->u.array_type, init->u.expression.exp_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -598,10 +659,10 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Array type mismatch",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
-			if (match_types(size->exp_type, sem->builtin_int_type) == FALSE) {
+			if (match_types(size->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -610,21 +671,28 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Expected integer for array construction",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			
 
-			return make_exp_ty(NULL, array_type);
+			return make_tree_ir_exp(
+				Tr_translateArray(init->u.expression.exp_ir, 
+				type_cost(array_type), size->u.expression.exp_ir), 
+				array_type
+			);
 
 
 
 		}
 		case Field_Exp: {
-			Exp_Ty field_exp_ty = check_field_exp(literal, sem);
-			if (field_exp_ty->exp_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
+			TreeIR field_exp_ir = check_field_exp(literal, sem);
+			if (field_exp_ir == NULL)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 
-			if (match_types(field_exp_ty->exp_type, sem->builtin_void_type) == TRUE) {
+			if (field_exp_ir->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+
+			if (match_types(field_exp_ir->u.expression.exp_type, sem->builtin_void_type) == TRUE) {
 				report_error(
 					UnknownError,
 					"(PLACEHOLDER)",
@@ -633,13 +701,13 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"UNDEFINED FIELD",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-			return field_exp_ty; 
+			return field_exp_ir; 
 		}
 		case Callee_Exp: {
 			string function_name = literal->u.callee_exp.id;
-			Symbol function = get_symbol(sem->scope_head->var_environment, function_name);
+			Symbol function = get_symbol(current_scope->var_environment, function_name);
 			
 			if (function == NULL) {
 				report_error(
@@ -650,7 +718,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Function does not exist",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			else if (function->environment_entry->kind == Var_Entry) {
 				report_error(
@@ -661,7 +729,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Variable found instead of function",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
 			
@@ -670,14 +738,21 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 			TypeList parameter = function->environment_entry->u.function_entry.parameters;
 			Type return_type = function->environment_entry->u.function_entry.return_type;
 			int error_found = FALSE;
+
+			IRList IR_arguments_head = NULL;
+			IRList IR_arguments_tail = NULL;
+
+			TempLabel function_label = function->environment_entry->u.function_entry.label;
+			Tr_Level function_level = function->environment_entry->u.function_entry.level;
+
 			while (TRUE) {
 				if (argument == NULL || parameter == NULL)
 					break;
-				Exp_Ty arg_type = check_exp(argument->exp, sem);
-				if (arg_type->exp_type->kind == Error_Type)
+				TreeIR arg_ir = check_exp(argument->exp, sem);
+				if (arg_ir == NULL || arg_ir->u.expression.exp_type->kind == Error_Type)
 					error_found = TRUE;
-				else if (match_types(actual_type(arg_type->exp_type), actual_type(parameter->type)) == FALSE) {
-					printf("\n ARG TYPE: %d\n", actual_type(arg_type->exp_type)->kind);
+				else if (match_types(actual_type(arg_ir->u.expression.exp_type), actual_type(parameter->type)) == FALSE) {
+					printf("\n ARG TYPE: %d\n", actual_type(arg_ir->u.expression.exp_type)->kind);
 					printf("\n PARAM TYPE: %d\n", actual_type(parameter->type)->kind);
 					report_error(
 						UnknownError,
@@ -689,11 +764,18 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					);
 					error_found = TRUE;
 				}
+				
+				append_node(
+					Tr_makeIRList(arg_ir->u.expression.exp_ir, NULL),
+					&(IR_arguments_head),
+					&(IR_arguments_tail)
+				);
+
 				argument = argument->next;
 				parameter = parameter->next;
 			}
 			if (error_found == TRUE)
-				return make_exp_ty(NULL,  sem->builtin_error_type);
+				return make_tree_ir_exp(NULL,  sem->builtin_error_type);
 			if (argument !=  NULL) {
 				report_error(
 					UnknownError,
@@ -703,7 +785,7 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Fewer arguments",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			if (parameter != NULL) {
 				report_error(
@@ -714,20 +796,24 @@ Exp_Ty check_literals(A_Exp literal, SemanticAnalyzer sem) {
 					"Fewer parameters",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
-			return make_exp_ty(NULL, return_type);
+			return make_tree_ir_exp(
+				Tr_translateCallee(function_label, current_scope->current_level, function_level, IR_arguments_head), 
+				return_type
+			);
 		}
-		default: return make_exp_ty(NULL, sem->builtin_error_type);
+		default: return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
-	return make_exp_ty(NULL, sem->builtin_void_type);
+	// ?
+	return make_tree_ir_exp(NULL, sem->builtin_error_type);
 }
-Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
+TreeIR check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 	if (strict_op_exp->kind == Unary_Exp) {
-		Exp_Ty operand_type = check_exp(strict_op_exp->u.unary_exp.exp, sem);
-		if (match_types(operand_type->exp_type, sem->builtin_int_type) == TRUE || match_types(operand_type->exp_type, sem->builtin_real_type) == TRUE) {
-			return make_exp_ty(NULL, actual_type(operand_type->exp_type));
+		TreeIR operand_type = check_exp(strict_op_exp->u.unary_exp.exp, sem);
+		if (match_types(operand_type->u.expression.exp_type, sem->builtin_int_type) == TRUE) {
+			return make_tree_ir_exp(NULL, actual_type(operand_type->u.expression.exp_type));
 		}
 		else {
 			report_error(
@@ -738,18 +824,18 @@ Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 				"INVALID UNARY OPERAND",
 				panic_mode
 			);
-			return make_exp_ty(NULL, sem->builtin_error_type);
+			return make_tree_ir_exp(NULL, sem->builtin_error_type);
 		}
 	}
 	else if (strict_op_exp->kind == Op_Exp) {
 		A_Op operation = strict_op_exp->u.op_exp.op;
-		Exp_Ty left = check_exp(strict_op_exp->u.op_exp.exp1, sem);
-		Exp_Ty right = check_exp(strict_op_exp->u.op_exp.exp2, sem);
-		printf("\nLEFT TYPE %d\n", actual_type(left->exp_type)->kind);
-		printf("\n RIGHT TYPE %d\n", actual_type(right->exp_type)->kind);
+		TreeIR left = check_exp(strict_op_exp->u.op_exp.exp1, sem);
+		TreeIR right = check_exp(strict_op_exp->u.op_exp.exp2, sem);
+		printf("\nLEFT TYPE %d\n", actual_type(left->u.expression.exp_type)->kind);
+		printf("\n RIGHT TYPE %d\n", actual_type(right->u.expression.exp_type)->kind);
 
 		if (operation == OP_MOD) {
-			if (match_types(left->exp_type, sem->builtin_int_type) == FALSE)  {
+			if (match_types(left->u.expression.exp_type, sem->builtin_int_type) == FALSE)  {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -758,10 +844,10 @@ Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 					"INVALID LEFT OPERAND (must be INT)",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
-			if (match_types(right->exp_type, sem->builtin_int_type) == FALSE) {
+			if (match_types(right->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -770,27 +856,25 @@ Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 					"INVALID OPERAND (must be INT)",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
-			return make_exp_ty(NULL, sem->builtin_int_type);
+			return make_tree_ir_exp(Tr_translateBasicOperation(left->u.expression.exp_ir, right->u.expression.exp_ir, operation), sem->builtin_int_type);
 		}
 		else if (operation == OP_LSHIFT || operation == OP_RSHIFT || operation == OP_AND || operation == OP_OR) {
-			if (match_types(left->exp_type, sem->builtin_int_type) == FALSE && 
-			match_types(left->exp_type, sem->builtin_real_type) == FALSE) {
+			if (match_types(left->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
 					strict_op_exp->u.op_exp.exp1->position->line_pos,
 					strict_op_exp->u.op_exp.exp1->position->col_pos,
-					"INVALID LEFT OPERAND (must be INT or REAL)",
+					"INVALID LEFT OPERAND (must be INT)",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
-			if (match_types(right->exp_type, sem->builtin_int_type) == FALSE && 
-			match_types(right->exp_type, sem->builtin_real_type) == FALSE) {
+			if (match_types(right->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACEHOLDER)",
@@ -799,24 +883,27 @@ Exp_Ty check_strict_op(A_Exp strict_op_exp, SemanticAnalyzer sem) {
 					"INVALID RIGHT OPERAND (must be only INT)",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-			return make_exp_ty(NULL, actual_type(left->exp_type));
+			return make_tree_ir_exp(Tr_translateBasicOperation(left->u.expression.exp_ir, right->u.expression.exp_ir, operation), actual_type(left->u.expression.exp_type));
 		}
 		
 	}
 
-	return make_exp_ty(NULL, sem->builtin_error_type);
+	return make_tree_ir_exp(NULL, sem->builtin_error_type);
 }
-Exp_Ty check_compar_op(A_Exp compar_op_expression, SemanticAnalyzer sem) {
-	Exp_Ty left = check_exp(compar_op_expression->u.op_exp.exp1, sem);
-	Exp_Ty right = check_exp(compar_op_expression->u.op_exp.exp2, sem);
-	printf("\n LEFT TYPE KIND: %d \n", left->exp_type->kind);
-	printf("\n RIGHT TYPE KIND: %d \n", right->exp_type->kind);
-	if (left->exp_type->kind == Error_Type || right->exp_type->kind == Error_Type) 
-		return make_exp_ty(NULL, sem->builtin_error_type);
+TreeIR check_compar_op(A_Exp compar_op_expression, SemanticAnalyzer sem) {
+	TreeIR left = check_exp(compar_op_expression->u.op_exp.exp1, sem);
+	TreeIR right = check_exp(compar_op_expression->u.op_exp.exp2, sem);
+	A_Op op = compar_op_expression->u.op_exp.op;
+
+	printf("\n LEFT TYPE KIND: %d \n", left->u.expression.exp_type->kind);
+	printf("\n RIGHT TYPE KIND: %d \n", right->u.expression.exp_type->kind);
+	if (left->u.expression.exp_type->kind == Error_Type || right->u.expression.exp_type->kind == Error_Type) 
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	
-	if (match_types(left->exp_type, sem->builtin_void_type) == TRUE || match_types(right->exp_type, sem->builtin_void_type) == TRUE) {
+	if (match_types(left->u.expression.exp_type, sem->builtin_void_type) == TRUE || 
+	match_types(right->u.expression.exp_type, sem->builtin_void_type) == TRUE) {
 		report_error(
 			TypeError,
 			"(PLACEHOLDER)",
@@ -825,9 +912,9 @@ Exp_Ty check_compar_op(A_Exp compar_op_expression, SemanticAnalyzer sem) {
 			"Must be a valid type",
 			panic_mode
 		);
-		return make_exp_ty(NULL, sem->builtin_error_type);
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
-	if (match_types(left->exp_type, right->exp_type) == FALSE) {
+	if (match_types(left->u.expression.exp_type, right->u.expression.exp_type) == FALSE) {
 		report_error(
 			TypeError,
 			"(PLACEHOLDER)",
@@ -836,19 +923,20 @@ Exp_Ty check_compar_op(A_Exp compar_op_expression, SemanticAnalyzer sem) {
 			"Type mismatch",
 			panic_mode
 		);
-		return make_exp_ty(NULL, sem->builtin_error_type);
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
-	return make_exp_ty(NULL, sem->builtin_int_type);
+	return make_tree_ir_exp(Tr_translateComparison(left->u.expression.exp_ir, op, right->u.expression.exp_ir) ,sem->builtin_int_type);
 }
-Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem) {
-	Exp_Ty left = check_exp(overload_op_exp->u.op_exp.exp1, sem);
-	Exp_Ty right = check_exp(overload_op_exp->u.op_exp.exp2, sem);
-	
-	if (left->exp_type->kind == Error_Type || right->exp_type->kind ==  Error_Type)
-		return make_exp_ty(NULL, sem->builtin_error_type);
+TreeIR check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem) {
+	TreeIR left = check_exp(overload_op_exp->u.op_exp.exp1, sem);
+	TreeIR right = check_exp(overload_op_exp->u.op_exp.exp2, sem);
+	A_Op operation = overload_op_exp->u.op_exp.op;
 
-	if (match_types(left->exp_type, sem->builtin_real_type) == FALSE &&
-	match_types(left->exp_type, sem->builtin_int_type) == FALSE) {
+	if (left->u.expression.exp_type->kind == Error_Type || 
+	right->u.expression.exp_type->kind ==  Error_Type)
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
+
+	if (match_types(left->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 		report_error(
 			TypeError,
 			"(PLACE HOLDER)",
@@ -857,11 +945,10 @@ Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem) {
 			"Left operand must be either INT or real",
 			panic_mode
 		);
-		return make_exp_ty(NULL, sem->builtin_error_type);
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
 
-	if (match_types(right->exp_type, sem->builtin_real_type) == FALSE &&
-	match_types(right->exp_type, sem->builtin_int_type) == FALSE) {
+	if (match_types(right->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 		report_error(
 			TypeError,
 			"(PLACE HOLDER)",
@@ -870,26 +957,28 @@ Exp_Ty check_overload_op(A_Exp overload_op_exp, SemanticAnalyzer sem) {
 			"Right operand must either be INT or real",
 			panic_mode
 		);
-		return make_exp_ty(NULL, sem->builtin_error_type);
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
-	if (right->exp_type->kind == Real_Type || left->exp_type->kind == Real_Type)
-		return make_exp_ty(NULL, sem->builtin_real_type);
-	return make_exp_ty(NULL, sem->builtin_int_type);
+
+	return make_tree_ir_exp(
+		Tr_translateBasicOperation(left->u.expression.exp_ir, right->u.expression.exp_ir, operation), 
+		sem->builtin_int_type
+	);
 
 }
 
-Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
+TreeIR check_exp(A_Exp expression, SemanticAnalyzer sem) {
 	if (expression == NULL)
-		return make_exp_ty(NULL, sem->builtin_void_type);
+		return make_tree_ir_exp(NULL, sem->builtin_void_type);
 	switch(expression->kind) {
 		case Unary_Exp: {
 			A_Op op_kind = expression->u.unary_exp.op;
 			Op_Class operation_class = op_class(op_kind);
-			Exp_Ty result = NULL;
+			TreeIR result = NULL;
 			if (operation_class == STRICT_OP || op_kind == OP_SUB)
 				result = check_strict_op(expression, sem);
 			else
-				result = make_exp_ty(NULL, sem->builtin_void_type);
+				result = make_tree_ir_exp(NULL, sem->builtin_void_type);
 			printf("\n Type checked unary operation\n");
 
 			return result;
@@ -897,7 +986,7 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 		case Op_Exp: {
 			A_Op op_kind = expression->u.op_exp.op;
 			Op_Class operation_class = op_class(op_kind);
-			Exp_Ty result = NULL;
+			TreeIR result = NULL;
 			if (operation_class == OVERLOAD_OP)
 				result = check_overload_op(expression, sem);
 			else if (operation_class == STRICT_OP)
@@ -905,36 +994,53 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 			else if (operation_class == COMPAR_OP)
 				result = check_compar_op(expression, sem);
 			else 
-				result = make_exp_ty(NULL, sem->builtin_void_type);
+				result = make_tree_ir_exp(NULL, sem->builtin_void_type);
 			printf("\n Type checked binary operation\n");
 			return result;
 		}
 		case Seq_Exp: {
 			A_ExpList current_explist = expression->u.seq_exp.exp_list;
 			if (current_explist == NULL)
-				return make_exp_ty(NULL, sem->builtin_void_type);
+				return make_tree_ir_exp(NULL, sem->builtin_void_type);
 
-			Exp_Ty current_exp_ty = NULL;
-			while (current_explist->next != NULL) {
-				current_exp_ty = check_exp(current_explist->exp, sem);
+			TreeIR current_exp_ir = NULL;
+			IRList head = NULL;
+			IRList tail = NULL;
+
+			ExpLoc old_value = sem->currently_checking_in;
+			Type sequence_type = NULL;
+			while (current_explist != NULL) {
+				sem->currently_checking_in = Block;
+				current_exp_ir = check_exp(current_explist->exp, sem);
+				if (current_exp_ir->u.expression.exp_type->kind == Error_Type)
+					return make_tree_ir_exp(NULL, sem->builtin_error_type);
+
+				sequence_type = current_exp_ir->u.expression.exp_type;
+
+				append_node(
+					Tr_makeIRList(current_exp_ir->u.expression.exp_ir, NULL),
+					&(head),
+					&(tail)
+				);
 				current_explist = current_explist->next;
 			}
-			current_exp_ty = check_exp(current_explist->exp, sem);
+			sem->currently_checking_in = old_value;
 			
 			printf("\n TYPE CHECKED SEQ EXP\n");
-			return current_exp_ty;
+			return make_tree_ir_exp(Tr_lowerSequence(head), sequence_type); 
 		}
 		case If_Exp: {
+		
 			A_Exp current_exp  = expression;
 			
-			Exp_Ty current_cond = check_exp(current_exp->u.if_exp.cond, sem);
-
-			if (current_cond->exp_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
+			TreeIR current_cond = check_exp(current_exp->u.if_exp.cond, sem);
+			
+			if (current_cond->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			
 
 
-			if (match_types(current_cond->exp_type, sem->builtin_int_type) == FALSE
+			if (match_types(current_cond->u.expression.exp_type, sem->builtin_int_type) == FALSE
 			) {
 					report_error(
 						TypeError,
@@ -944,22 +1050,39 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 						"Operand of type boolean must be IF conditional",
 						panic_mode
 					);
-					return make_exp_ty(NULL, sem->builtin_error_type);
+					return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-			Exp_Ty then_block = check_exp(current_exp->u.if_exp.then, sem);
-			if (current_exp->u.if_exp.else_block == NULL)
-				return make_exp_ty(NULL, sem->builtin_void_type);
+		
+			sem->currently_checking_in = Block;
+			TreeIR then_block = check_exp(current_exp->u.if_exp.then, sem);
+			sem->currently_checking_in = If;
+			
+			Type then_type = actual_type(then_block->u.expression.exp_type);
 
+			if (current_exp->u.if_exp.else_block == NULL) {
+				return make_tree_ir_exp(
+					Tr_translateIfStatement(
+						current_cond->u.expression.exp_ir,
+						then_block->u.expression.exp_ir,
+						NULL
+					), 
+					then_type
+				);
+			}
 
-			Exp_Ty else_block = check_exp(current_exp->u.if_exp.else_block, sem);
-			Type else_type = actual_type(else_block->exp_type);
-			Type then_type = actual_type(then_block->exp_type);
+		
+			sem->currently_checking_in = Block;
+			TreeIR else_block = check_exp(current_exp->u.if_exp.else_block, sem);
+			sem->currently_checking_in = If;
+
+			Type else_type = actual_type(else_block->u.expression.exp_type);
+		
 
 			printf("\n THEN TYPE: %d\n", then_type->kind);
 			printf("\n ELSE TYPE: %d\n", else_type->kind);
 			
 			if (else_type->kind == Error_Type || then_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			if (match_types(else_type, then_type) == FALSE) {
 				report_error(
 					TypeError,
@@ -969,20 +1092,59 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 					"Type mismatch in IF expression",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 
 			printf("\n TYPE CHECKED IF\n");
-			return make_exp_ty(NULL, then_type);
+
+			return make_tree_ir_exp(Tr_translateIfStatement(
+					current_cond->u.expression.exp_ir, 
+					then_block->u.expression.exp_ir, 
+					else_block->u.expression.exp_ir
+				), 
+				then_type
+			);
+		}
+		case Break_Exp: {
+			if (sem->currently_checking_in != While && sem->currently_checking_in != For) {
+				report_error(
+					SyntaxError,
+					"(PLACE HOLDER)",
+					expression->position->line_pos,
+					expression->position->col_pos,
+					"BREAK NOT IN FOR OR WHILE LOOP",
+					panic_mode
+				);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+			}
+			return make_tree_ir_exp(Tr_translateBreak(), sem->builtin_void_type);
+		}
+		case Continue_Exp: {
+			if (sem->currently_checking_in != While && sem->currently_checking_in != For) {
+				report_error(
+					SyntaxError,
+					"(PLACE HOLDER)",
+					expression->position->line_pos,
+					expression->position->col_pos,
+					"CONTINUE NOT IN FOR OR WHILE LOOP",
+					panic_mode
+				);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+			}
+			return make_tree_ir_exp(Tr_translateContinue(), sem->builtin_void_type);
 		}
 		case While_Exp: {
-			Exp_Ty condition = check_exp(expression->u.while_exp.cond, sem);
+			TreeIR condition = check_exp(expression->u.while_exp.cond, sem);
 			
-			Exp_Ty block = check_exp(expression->u.while_exp.block, sem);
-			if (condition->exp_type->kind == Error_Type || block->exp_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
+			ExpLoc old_val = sem->currently_checking_in;
+			sem->currently_checking_in = While;
+			TreeIR block = check_exp(expression->u.while_exp.block, sem);
+			sem->currently_checking_in = old_val;
 
-			if (match_types(condition->exp_type, sem->builtin_int_type) == FALSE) {
+			if (condition->u.expression.exp_type->kind == Error_Type || block->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+
+			if (match_types(condition->u.expression.exp_type, sem->builtin_int_type) == FALSE) {
 				report_error(
 					TypeError,
 					"(PLACE HOLDER)",
@@ -991,30 +1153,43 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 					"Operand of type boolean must be WHILE conditional",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
-			if (match_types(block->exp_type, sem->builtin_void_type) == FALSE) {
-				report_error(
-					TypeError,
-					"(PLACE HOLDER)",
-					expression->position->line_pos,
-					expression->position->col_pos,
-					"Block must be void",
-					panic_mode
-				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+
+		
+			
+			if (block->u.expression.exp_type->kind == Error_Type || 
+				match_types(block->u.expression.exp_type, sem->builtin_void_type) == FALSE) {
+					report_error(
+						TypeError,
+						"(PLACEHOLDER)",
+						expression->position->line_pos,
+						expression->position->col_pos,
+						"Block must be void",
+						panic_mode
+					);
+					return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
+				
 			printf("\nTYPE CHECKED WHILE\n");
 	
-			return make_exp_ty(NULL, sem->builtin_void_type);
+			return make_tree_ir_exp(
+				Tr_translateWhileLoop(
+					condition->u.expression.exp_ir, 
+					block->u.expression.exp_ir
+				), 
+				sem->builtin_void_type
+			);
 		}
 		case Assign_Exp: {
-			Exp_Ty id_type = check_exp(expression->u.assign_exp.identifier, sem);
-			Exp_Ty value_type = check_exp(expression->u.assign_exp.val, sem);
-			if (id_type->exp_type->kind == Error_Type || value_type->exp_type->kind == Error_Type)
-				return make_exp_ty(NULL, sem->builtin_error_type);
-
-			if (match_types(id_type->exp_type, value_type->exp_type) != TRUE) {
+			TreeIR id_ir = check_exp(expression->u.assign_exp.identifier, sem);
+			TreeIR value_ir = check_exp(expression->u.assign_exp.val, sem);
+			if (id_ir->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+			if (value_ir->u.expression.exp_type->kind == Error_Type)
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
+			
+			if (match_types(id_ir->u.expression.exp_type, value_ir->u.expression.exp_type) != TRUE) {
 				report_error(
 					TypeError,
 					"(PLACE HOLDER)",
@@ -1023,26 +1198,27 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 					"Type mismatch",
 					panic_mode
 				);
-				return make_exp_ty(NULL, sem->builtin_error_type);
+				return make_tree_ir_exp(NULL, sem->builtin_error_type);
 			}
 			
-			return make_exp_ty(NULL, sem->builtin_void_type);
+			return make_tree_ir_exp(Tr_translateAssignment(id_ir->u.expression.exp_ir, value_ir->u.expression.exp_ir), sem->builtin_void_type);
 		}
 		case For_Exp: {
 			string low_id = expression->u.for_exp.low_id->u.id_exp.identifier;
-			Exp_Ty low_type = check_exp(expression->u.for_exp.low, sem);
-			if (low_type->exp_type->kind == Error_Type)
-				return low_type;
+			TreeIR low_ir = check_exp(expression->u.for_exp.low, sem);
+			if (low_ir->u.expression.exp_type->kind == Error_Type)
+				return low_ir;
 
 			Symbol low_symbol = get_symbol(sem->scope_head->var_environment, low_id);
+			Tr_Access low_access = NULL;
 			if (low_symbol == NULL) {
 				bool escape = true;
 				Symbol escape_symbol = get_symbol(sem->scope_head->escape_environment, low_id);
 				if (escape_symbol != NULL)
 					escape = escape_symbol->environment_entry->u.escape_entry.escapes;
 
-				Tr_Access low_access = Tr_allocLocal(sem->scope_head->current_level, escape);
-				low_symbol = make_symbol(low_id, make_var_entry(low_access, low_type->exp_type));
+				low_access = Tr_allocLocal(sem->scope_head->current_level, escape);
+				low_symbol = make_symbol(low_id, make_var_entry(low_access, low_ir->u.expression.exp_type));
 				sem->scope_head->var_environment = insert_symbol(sem->scope_head->var_environment, low_symbol);
 			}
 			else {
@@ -1055,21 +1231,35 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 						"Expected variable, but got function",
 						panic_mode
 					);
-					return make_exp_ty(NULL, sem->builtin_error_type);
+					return make_tree_ir_exp(NULL, sem->builtin_error_type);
 				}
-				
-				low_symbol->environment_entry->u.var_entry.variable_type = low_type->exp_type;
+				low_access = low_symbol->environment_entry->u.var_entry.access;
+				low_symbol->environment_entry->u.var_entry.variable_type = low_ir->u.expression.exp_type;
 			}
-	
-			Exp_Ty high_type = check_exp(expression->u.for_exp.high, sem);
-			if (high_type->exp_type->kind == Error_Type)
-				return high_type;
+			Tr_Exp low_id_ir = Tr_translateVariableAccess(low_access, sem->scope_head->current_level, type_cost(low_ir->u.expression.exp_type));
 
-			Exp_Ty block_type = check_exp(expression->u.for_exp.block, sem);
-			if (block_type->exp_type->kind == Error_Type)
-				return block_type;
 
-			return make_exp_ty(NULL, sem->builtin_void_type);
+			TreeIR high_ir = check_exp(expression->u.for_exp.high, sem);
+			if (high_ir->u.expression.exp_type->kind == Error_Type)
+				return high_ir;
+			
+			ExpLoc old_val = sem->currently_checking_in;
+			sem->currently_checking_in = For;
+			TreeIR block_ir = check_exp(expression->u.for_exp.block, sem);
+			sem->currently_checking_in = old_val;
+
+			if (block_ir->u.expression.exp_type->kind == Error_Type)
+				return block_ir;
+
+			return make_tree_ir_exp(
+				Tr_translateForLoop(
+					low_id_ir, 
+					low_ir->u.expression.exp_ir,
+					high_ir->u.expression.exp_ir,
+					block_ir->u.expression.exp_ir
+				), 
+				sem->builtin_void_type
+			);
 		}
 		case Let_Exp: {
 			printf("\n FOUND LET EXP\n");
@@ -1117,27 +1307,49 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 			}
 			current_declaration = expression->u.let_exp.declarations;
 			
+			
+			// IR Translation integration for variable declarations
+			IRList ir_head = NULL;
+			IRList ir_tail = NULL; 
+
 			while (current_declaration != NULL) {
 				A_Dec declaration = current_declaration->dec;
 				if (declaration->kind == Simple_Var_Dec) {
-					sem = handle_simple_variable(declaration, sem);
+					TreeIR variable_dec = handle_simple_variable(declaration, sem);
+					append_node(
+						Tr_makeIRList(variable_dec->u.expression.exp_ir, NULL), 
+						&(ir_head),
+						&(ir_tail)
+					);
 				}
 				else if (declaration->kind == Field_Var_Dec) {
-					sem = handle_field_variable(declaration, sem);
+					TreeIR variable_dec = handle_field_variable(declaration, sem);
+					append_node(
+						Tr_makeIRList(variable_dec->u.expression.exp_ir, NULL),
+						&(ir_head),
+						&(ir_tail)
+					);
 				}
 				else if (declaration->kind == Func_Dec) {
-					sem = handle_function(declaration, sem);
+					handle_function(declaration, sem);
 				}
 				current_declaration = current_declaration->next;
 			}
+
+			// IR Translation for code fragments
 			current_declaration = expression->u.let_exp.declarations;
 			while (current_declaration != NULL) {
-				if (current_declaration->dec->kind == Func_Dec) {
+				if (current_declaration->dec->kind == Func_Dec) 
 					sem = process_body(current_declaration->dec, sem);
-				}
+				
 				current_declaration = current_declaration->next;
 			}
-			Exp_Ty result = check_exp(expression->u.let_exp.block, sem);
+
+			ExpLoc old_val = sem->currently_checking_in;
+			sem->currently_checking_in = Let;
+			TreeIR result = check_exp(expression->u.let_exp.block, sem);
+			sem->currently_checking_in = old_val;
+
 			sem = end_scope(sem);
 			printf("\n Finished semantic analysis at let environment: %p\n", expression);
 			return result;
@@ -1146,7 +1358,7 @@ Exp_Ty check_exp(A_Exp expression, SemanticAnalyzer sem) {
 		default:
 			return check_literals(expression, sem);
 	}
-	return make_exp_ty(NULL, sem->builtin_error_type);
+	return make_tree_ir_exp(NULL, sem->builtin_error_type);
 }
 SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem) {
 	Symbol function_symbol = get_symbol(sem->scope_head->var_environment, declaration->u.func_dec.name);
@@ -1263,23 +1475,28 @@ SemanticAnalyzer process_body(A_Dec declaration, SemanticAnalyzer sem) {
 		tr_parameters = tr_parameters->next;
 	}
 
-	Exp_Ty block = check_exp(declaration->u.func_dec.block, sem);
-	Type actual_block_type = actual_type(block->exp_type);
-	Type actual_return_type = actual_type(function_symbol->environment_entry->u.function_entry.return_type);
-	if (match_types(actual_block_type, actual_return_type) == FALSE) {
-		report_error(
-			TypeError,
-			"(PLACEHOLDER)",
-			declaration->position->line_pos,
-			declaration->position->col_pos,
-			"Type mismatch with function return type",
-			panic_mode
-		);
+	TreeIR block = check_exp(declaration->u.func_dec.block, sem);
+	Type actual_function_type = actual_type(function_symbol->environment_entry->u.function_entry.return_type);
+
+	if (actual_function_type->kind != Error_Type) {
+		Type actual_block_type = actual_type(block->u.expression.exp_type);
+		if (match_types(actual_block_type, actual_function_type) == FALSE) {
+			report_error(
+				TypeError,
+				"(PLACEHOLDER)",
+				declaration->position->line_pos,
+				declaration->position->col_pos,
+				"Type mismatch with function return type",
+				panic_mode
+			);
+		}
 	}
+	Tr_makeFunction(new_level, block->u.expression.exp_ir, tr_parameters);
+
 	sem = end_scope(sem);
 	return sem;
 }
-SemanticAnalyzer handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem) {
+TreeIR handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem) {
 	Symbol simple_var_symbol = get_symbol(sem->scope_head->var_environment, declaration->u.simple_var_dec.id);
 	Symbol simple_var_escape_symbol = get_symbol(sem->scope_head->escape_environment, declaration->u.simple_var_dec.id);
 	bool escape = true;
@@ -1289,13 +1506,23 @@ SemanticAnalyzer handle_simple_variable(A_Dec declaration, SemanticAnalyzer sem)
 	Tr_Access simple_access = Tr_allocLocal(sem->scope_head->current_level, escape);
 	
 
-	Exp_Ty result = check_exp(declaration->u.simple_var_dec.val, sem);
-	simple_var_symbol->environment_entry->u.var_entry.variable_type = result->exp_type;
+	TreeIR result = check_exp(declaration->u.simple_var_dec.val, sem);
+	simple_var_symbol->environment_entry->u.var_entry.variable_type = result->u.expression.exp_type;
 	simple_var_symbol->environment_entry->u.var_entry.access = simple_access;
-
-	return sem;
+	
+	Type simple_var_type = actual_type(simple_var_symbol->environment_entry->u.var_entry.variable_type);
+	return make_tree_ir_exp(Tr_translateAssignment(
+				Tr_translateVariableAccess(
+					simple_var_symbol->environment_entry->u.var_entry.access, 
+					sem->scope_head->current_level,
+					type_cost(simple_var_type)
+				),
+				result->u.expression.exp_ir
+			),
+			sem->builtin_void_type
+		);
 }
-SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) {
+TreeIR handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) {
 	A_Field dec_field = declaration->u.field_var_dec.field;
 	Symbol field_symbol = get_symbol(sem->scope_head->var_environment, dec_field->u.ty_field.id);
 	Symbol field_escape_symbol = get_symbol(sem->scope_head->escape_environment, dec_field->u.ty_field.id);
@@ -1325,8 +1552,8 @@ SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) 
 	else 
 		field_res = type_symbol->environment_entry->u.var_entry.variable_type;
 
-	Exp_Ty value_result = check_exp(declaration->u.field_var_dec.val, sem);
-	if (match_types(actual_type(field_res), actual_type(value_result->exp_type)) == FALSE) {
+	TreeIR value_result = check_exp(declaration->u.field_var_dec.val, sem);
+	if (match_types(actual_type(field_res), actual_type(value_result->u.expression.exp_type)) == FALSE) {
 		report_error(
 			TypeError,
 			"(PLACEHOLDER)",
@@ -1336,13 +1563,26 @@ SemanticAnalyzer handle_field_variable(A_Dec declaration, SemanticAnalyzer sem) 
 			panic_mode
 		);
 		field_symbol->environment_entry->u.var_entry.variable_type = sem->builtin_error_type;
-		return sem;
+		return make_tree_ir_exp(NULL, sem->builtin_error_type);
 	}
 	field_symbol->environment_entry->u.var_entry.access = var_access;
 	field_symbol->environment_entry->u.var_entry.variable_type = field_res;
-	return sem;
+		
+
+
+	return make_tree_ir_exp(
+		Tr_translateAssignment(
+			Tr_translateVariableAccess(
+				field_symbol->environment_entry->u.var_entry.access,
+				sem->scope_head->current_level,
+				type_cost(field_res)
+			),
+			value_result->u.expression.exp_ir
+		),
+		field_res
+	);
 }
-SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
+void handle_function(A_Dec declaration, SemanticAnalyzer sem) {
 	Symbol function_symbol = get_symbol(sem->scope_head->var_environment, declaration->u.func_dec.name);
 	TypeList header_parameters = NULL;
 	TypeList parameters = NULL; 
@@ -1403,7 +1643,6 @@ SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
 				panic_mode
 			);
 			function_symbol->environment_entry->u.function_entry.return_type = sem->builtin_error_type;
-
 		}
 		else 
 			function_symbol->environment_entry->u.function_entry.return_type = return_symbol->environment_entry->u.var_entry.variable_type;
@@ -1414,7 +1653,6 @@ SemanticAnalyzer handle_function(A_Dec declaration, SemanticAnalyzer sem) {
 	Type return_type = function_symbol->environment_entry->u.function_entry.return_type;
 	resolve_type(return_type, sem, declaration->position);
 	
-	return sem;
 }
 Type handle_type_def(Symbol current_symbol, A_Dec current_declaration, SemanticAnalyzer sem) {
 	Environment type_environment = sem->scope_head->type_environment;
@@ -1616,36 +1854,42 @@ SemanticAnalyzer precheck_decs(A_Dec declaration, SemanticAnalyzer sem) {
 	return sem;
 }
 
-void process_statement(A_Stm stm, SemanticAnalyzer sem) {
+TreeIR process_statement(A_Stm stm, SemanticAnalyzer sem) {
 	if (stm == NULL)
-		return;
+		return NULL;
+	sem->currently_checking_in = Global;
 	switch (stm->kind) {
-		case Compound_Stm: {
-			printf("\n FOUND COMPOUND\n");
-			process_statement(stm->u.compound_stm.stm1, sem);
-			process_statement(stm->u.compound_stm.stm2, sem);
-			break;
-		}
 		case Exp_Stm: {
-			printf("\n FOUND EXP\n");
-			check_exp(stm->u.exp_stm.expression, sem);
+			sem->ir_root = check_exp(stm->u.exp_stm.expression, sem);
 			break;
 		}
-		case Decl_Stm: {
-			printf("\n FOUND DEC\n");
-			break;
+		case Decl_Stm: break;
+		case Compound_Stm: {
+			
+			TreeIR left_res = process_statement(stm->u.compound_stm.stm1, sem);
+			TreeIR right_res = process_statement(stm->u.compound_stm.stm2, sem);
+			if (left_res == NULL)
+				return NULL;
+			if (right_res == NULL)
+				return NULL;
+			return make_tree_ir_compound(left_res, right_res);
+			
 		}
 	}
+
+	return sem->ir_root;
+	
 }
-void semantic_main(SemanticAnalyzer sem) {
+TreeIR semantic_main(SemanticAnalyzer sem) {
 	A_Stm compound_stm = sem->parser->root;
 	if (compound_stm == NULL)
 		printf("\n Fuck\n");
-	
 	sem = begin_scope(sem);
 	printf("\n MADE STANDARD ENV\n");
 	
-	process_statement(compound_stm, sem);
-	
+
+	int iter = 1;
+	TreeIR root = process_statement(compound_stm, sem);
+	return root;
 }
 

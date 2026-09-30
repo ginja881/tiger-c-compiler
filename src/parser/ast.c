@@ -36,17 +36,6 @@ A_Exp make_num_exp(int num, A_Pos position) {
 	return new_num_exp;
 }
 
-A_Exp make_real_exp(double value, A_Pos position) {
-	A_Exp new_real_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
-
-	new_real_exp->kind = Real_Exp;
-	new_real_exp->position = position;
-
-	new_real_exp->u.real_exp.value = value;
-	
-	return new_real_exp;
-}
-
 A_Exp make_nil_exp(A_Pos position) {
 	A_Exp new_nil_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 	new_nil_exp->kind = NIL_Exp;
@@ -548,10 +537,6 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 	printf("\nPrimary Input: %s \n", current_token->input);
 	if (match(current_token, NUM) == TRUE) {
 		current_exp = make_num_exp(atoi(current_token->input), position);
-		eat_token(lexer->queue);
-	}
-	else if (match(current_token, REAL) == TRUE) {
-		current_exp = make_real_exp(atof(current_token->input), position);
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, STRING_VAL) == TRUE) {

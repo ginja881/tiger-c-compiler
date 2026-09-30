@@ -41,7 +41,6 @@ typedef enum {
       // Expressions
       NULL_VAL,
       ID,
-      REAL,
       NUM,
       TRUE_VAL,
       FALSE_VAL,
