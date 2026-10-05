@@ -185,6 +185,7 @@ struct Parser_ {
      struct A_Stm_* root;
      int panic_mode;
      int current_stm;
+     Arena parserArena;
 };
 
 // Types
@@ -204,48 +205,48 @@ Parser make_parser(void);
 
 A_Pos make_pos(size_t line_pos, size_t col_pos);
 
-A_Exp make_id_exp(string id, A_Pos position);
-A_Exp make_num_exp(int num, A_Pos position);
-A_Exp make_nil_exp(A_Pos position);
-A_Exp make_bool_exp(int boolean, A_Pos position);
-A_Exp make_char_exp(char character, A_Pos position);
-A_Exp make_string_exp(string text, A_Pos position);
+A_Exp make_id_exp(string id, A_Pos position, Arena* parserArena);
+A_Exp make_num_exp(int num, A_Pos position, Arena* parserArena);
+A_Exp make_nil_exp(A_Pos position, Arena* parserArena);
+A_Exp make_bool_exp(int boolean, A_Pos position, Arena* parserArena);
+A_Exp make_char_exp(char character, A_Pos position, Arena* parserArena);
+A_Exp make_string_exp(string text, A_Pos position, Arena* parserArena);
 
 
-A_ExpList make_exp_list(A_Exp exp);
-A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2);
-A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position);
-A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position);
-A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position);
-A_Exp make_dec_exp(A_Dec exp);
+A_ExpList make_exp_list(A_Exp exp, Arena* parserArena);
+A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2, Arena* parserArena);
+A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position, Arena* parserArena);
+A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position, Arena* parserArena);
+A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position, Arena* parserArena);
+A_Exp make_dec_exp(A_Dec exp, Arena parserArena);
 
-A_Exp make_assign_exp(A_Exp identifier, A_Exp val);
-A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos position);
-A_Exp make_while_exp(A_Exp cond, A_Exp block, A_Pos position);
-A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position);
-A_Exp make_let_exp(A_DecList declarations, A_Exp block, A_Pos position);
-A_Exp make_seq_exp(A_ExpList exp_list);
+A_Exp make_assign_exp(A_Exp identifier, A_Exp val, Arena* parserArena);
+A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos position, Arena* parserArena);
+A_Exp make_while_exp(A_Exp cond, A_Exp block, A_Pos position, Arena* parserArena);
+A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position, Arena* parserArena);
+A_Exp make_let_exp(A_DecList declarations, A_Exp block, A_Pos position, Arena* parserArena);
+A_Exp make_seq_exp(A_ExpList exp_list, Arena parserArena);
 
-A_Field make_subscript_field(string id, A_Exp loc, A_Pos position);
-A_Field make_type_field(string id, string type, A_Pos position);
-A_FieldList make_field_list(A_Field field);
-A_Field make_array_field(string type_id, A_Pos position);
-A_Field make_record(string type_id, A_FieldList field_list, A_Pos position);
-A_Field make_ty_record(A_FieldList field_list, A_Pos position);
-A_Field make_ref_field(A_Exp left_id, A_Exp right_id, A_Pos position);
-A_Field make_item_field(string id, A_Exp value, A_Pos position);
-A_Exp make_field_exp(A_Field field);
-A_DecList make_dec_list(A_Dec declaration);
+A_Field make_subscript_field(string id, A_Exp loc, A_Pos position, Arena* parserArena);
+A_Field make_type_field(string id, string type, A_Pos position, Arena* parserArena);
+A_FieldList make_field_list(A_Field field, Arena* parserArena);
+A_Field make_array_field(string type_id, A_Pos position, Arena* parserArena);
+A_Field make_record(string type_id, A_FieldList field_list, A_Pos position, Arena* parserArena);
+A_Field make_ty_record(A_FieldList field_list, A_Pos position, Arena* parserArena);
+A_Field make_ref_field(A_Exp left_id, A_Exp right_id, A_Pos position, Arena* parserArena);
+A_Field make_item_field(string id, A_Exp value, A_Pos position, Arena* parserArena);
+A_Exp make_field_exp(A_Field field, Arena* parserArena);
+A_DecList make_dec_list(A_Dec declaration, Arena* parserArena);
 
-A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position);
-A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position);
-A_Dec make_type_dec(string name, A_Field def_field, A_Pos position);
-A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position);
-A_Stm make_declaration_stm(A_Dec declaration);
-A_Stm make_expression_stm(A_Exp expression);
-A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2);
-A_Exp make_break_exp(A_Pos position);
-A_Exp make_continue_exp(A_Pos position);
+A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position, Arena* parserArena);
+A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos Position, Arena* parserArena);
+A_Dec make_type_dec(string name, A_Field def_field, A_Pos position, Arena* parserArena);
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position, Arena* parserArena);
+A_Stm make_declaration_stm(A_Dec declaration, Arena* parserArena);
+A_Stm make_expression_stm(A_Exp expression, Arena* parserArena);
+A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2, Arena* parserArena);
+A_Exp make_break_exp(A_Pos position, Arena* parserArena);
+A_Exp make_continue_exp(A_Pos position, Arena* parserArena);
 
 
 void eat_lines(Lexer lexer, Parser parser); 

@@ -1,11 +1,24 @@
 #include "tokens.h"
 
-Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type) {
-      Token new_token = (Token)checked_malloc(sizeof(struct Token_));
+Token make_token(
+      size_t line_pos, 
+      size_t char_pos, 
+      size_t text_size, 
+      string input, 
+      token token_type,
+      Lexer lexer
+) {
+      Token new_token = (Token)Arena_allocArena(
+      	&(lexer->lexicalArena), 
+	sizeof(struct Token_), 
+	__alignof__(struct Token_)
+      );
+
       new_token->line_pos = line_pos;
       new_token->char_pos = char_pos;
       new_token->text_size = text_size;
       new_token->input = input;
+      
       new_token->token_type = token_type;
       new_token->next = NULL;
       return new_token;
@@ -13,7 +26,13 @@ Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string inpu
 
 Lexer make_lexer() {
        Lexer lexer = (Lexer)checked_malloc(sizeof(struct Lexer_));
-       lexer->queue = (TokenQueue)checked_malloc(sizeof(struct TokenQueue_));
+       lexer->lexicalArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY);
+       lexer->queue = (TokenQueue)Arena_allocArena(
+       	&(lexer->lexicalArena), 
+	sizeof(struct TokenQueue_), 
+	__alignof__(struct TokenQueue_)
+       );
+
        lexer->queue->front = NULL;
        lexer->queue->tail = NULL;
 
@@ -23,6 +42,7 @@ Lexer make_lexer() {
        lexer->current_line = 1;
        lexer->current_input_size = 0;
        lexer->current_input = "";
+       
        return lexer;
 }
 

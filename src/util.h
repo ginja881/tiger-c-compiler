@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdbool.h>
+#include "alloc.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -56,8 +57,6 @@ int hash(char* text);
 void set_table(StringTable table, string text);
 string get_string(StringTable, string text);
 */
-
-void* checked_malloc(size_t bytes);
 
 void report_error(error_code error, string line, size_t line_pos, size_t char_pos, string error_msg, int panic_mode);
 

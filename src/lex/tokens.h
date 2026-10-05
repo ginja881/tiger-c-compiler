@@ -102,6 +102,7 @@ struct Lexer_ {
      size_t current_input_size;
     
      char* current_input;
+     Arena lexicalArena;
 };
 
 typedef struct Lexer_* Lexer;
@@ -109,7 +110,7 @@ typedef struct Lexer_* Lexer;
 extern int panic_mode;
 
 // Constructors
-Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type);
+Token make_token(size_t line_pos, size_t char_pos, size_t text_size, string input, token token_type, Lexer lexer);
 Lexer make_lexer();
 
 // Parser operations

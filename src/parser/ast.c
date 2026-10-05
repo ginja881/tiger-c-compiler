@@ -6,19 +6,31 @@ Parser make_parser(void) {
       new_parser->root = NULL;
       new_parser->current_stm = -1;
       new_parser->panic_mode = FALSE;
+      new_parser->parserArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY);
 
       return new_parser;
 }
 
-A_Pos make_pos(size_t line_pos, size_t col_pos) {
-	A_Pos position = (A_Pos)checked_malloc(sizeof(struct A_Pos_));
+A_Pos make_pos(size_t line_pos, size_t col_pos, Arena* parserArena) {
+	A_Pos position = (A_Pos)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Pos_),
+		__alignof__(struct A_Pos_)
+	);
+
 	position->col_pos = col_pos;
 	position->line_pos = line_pos;
+	
 	return position;
 }
 
-A_Exp make_id_exp(string id, A_Pos position) {
-	A_Exp new_id_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_id_exp(string id, A_Pos position, Arena* parserArena) {
+	A_Exp new_id_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
+
 	new_id_exp->u.id_exp.identifier = strdup(id);
 	
 	new_id_exp->position = position;
@@ -26,8 +38,12 @@ A_Exp make_id_exp(string id, A_Pos position) {
 	return new_id_exp;
 }
 
-A_Exp make_num_exp(int num, A_Pos position) {
-	A_Exp new_num_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_num_exp(int num, A_Pos position, Arena* parserArena) {
+	A_Exp new_num_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
 
 	new_num_exp->kind = Num_Exp;
 	new_num_exp->position = position;
@@ -36,16 +52,26 @@ A_Exp make_num_exp(int num, A_Pos position) {
 	return new_num_exp;
 }
 
-A_Exp make_nil_exp(A_Pos position) {
-	A_Exp new_nil_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_nil_exp(A_Pos position, Arena* parserArena) {
+	A_Exp new_nil_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
+
 	new_nil_exp->kind = NIL_Exp;
 	new_nil_exp->position = position;
 
 	return new_nil_exp;
 }
 
-A_Exp make_bool_exp(int boolean, A_Pos position) {
-	A_Exp new_bool_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_bool_exp(int boolean, A_Pos position, Arena* parserArena) {
+	A_Exp new_bool_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
+
 	new_bool_exp->kind = Bool_Exp;
 	new_bool_exp->position = position;
 	new_bool_exp->u.bool_exp.boolean = boolean;
@@ -53,8 +79,14 @@ A_Exp make_bool_exp(int boolean, A_Pos position) {
 	return new_bool_exp;
 }
 
-A_Exp make_char_exp(char character, A_Pos position) {
-	A_Exp new_char_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_char_exp(char character, A_Pos position, Arena* parserArena) {
+
+	A_Exp new_char_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
+
 	new_char_exp->kind = Char_Exp;
 	new_char_exp->position = position;
 
@@ -63,8 +95,13 @@ A_Exp make_char_exp(char character, A_Pos position) {
 	return new_char_exp;
 }
 
-A_Exp make_string_exp(string text, A_Pos position) {
-	A_Exp new_string_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_string_exp(string text, A_Pos position, Arena* parserArena) {
+	A_Exp new_string_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp_)
+	);
+
 	new_string_exp->kind = String_Exp;
 	new_string_exp->position = position;
 
@@ -74,15 +111,25 @@ A_Exp make_string_exp(string text, A_Pos position) {
 }
 
 
-A_ExpList make_exp_list(A_Exp exp) {
-	A_ExpList new_exp_list = (A_ExpList)checked_malloc(sizeof(struct A_ExpList_));
+A_ExpList make_exp_list(A_Exp exp, Arena* parserArena) {
+	A_ExpList new_exp_list = (A_ExpList)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_ExpList_),
+		__alignof__(struct A_Exp)
+	);
+
 	new_exp_list->exp = exp;
 	new_exp_list->next = NULL;
 	return new_exp_list;
 }
 
-A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position) {
-	A_Exp new_unary_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position, Arena* parserArena) {
+	A_Exp new_unary_exp = (A_Exp)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Exp_),
+		__alignof__(struct A_Exp)
+	);
+
 	new_unary_exp->kind = Unary_Exp;
 	new_unary_exp->position = position;
 
@@ -93,8 +140,12 @@ A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position) {
 	return new_unary_exp;
 
 }
-A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2) {
-	A_Exp new_op_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2, Arena* parserArena) {
+	A_Exp new_op_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp)
+        );
 	new_op_exp->kind = Op_Exp;
         new_op_exp->position = exp1->position;
 
@@ -105,8 +156,13 @@ A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2) {
 	return new_op_exp;
 }
 
-A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position) {
-	A_Exp callee_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position, Arena* parserArena) {
+	A_Exp callee_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp)
+        );
+
 	callee_exp->kind = Callee_Exp;
 	callee_exp->position = position;
 
@@ -116,8 +172,13 @@ A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position) {
 	return callee_exp;
 }
 
-A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position) {
-	A_Exp new_array_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position, Arena* parserArena) {
+	A_Exp new_array_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp)
+        );
+
 	new_array_exp->kind = Array_Exp;
 	new_array_exp->position  = position;
 
@@ -130,8 +191,13 @@ A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position) {
 }
 
 
-A_Field make_subscript_field(string id, A_Exp loc, A_Pos position) {
-	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_subscript_field(string id, A_Exp loc, A_Pos position, Arena* parserArena) {
+	A_Field new_field = (A_Field)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_Field_),
+		__alignof__(struct A_Field_)
+	);
+
 	new_field->kind = Subscript_Field;
 	new_field->position = position;
 
@@ -141,8 +207,13 @@ A_Field make_subscript_field(string id, A_Exp loc, A_Pos position) {
 	return new_field;
 }
 
-A_Field make_type_field(string id,  string type, A_Pos position) {
-	A_Field new_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_type_field(string id,  string type, A_Pos position, Arena* parserArena) {
+	A_Field new_field = (A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
+
 	new_field->kind = Ty_Field;
 	new_field->position = position;
 
@@ -151,24 +222,38 @@ A_Field make_type_field(string id,  string type, A_Pos position) {
 	return new_field;
 }
 
-A_FieldList make_field_list(A_Field field) {
-	A_FieldList new_field_list = (A_FieldList)checked_malloc(sizeof(struct A_FieldList_));
+A_FieldList make_field_list(A_Field field, Arena* parserArena) {
+	A_FieldList new_field_list = (A_FieldList)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_FieldList_),
+		__alignof__(struct A_FieldList_)
+	);
+
 	new_field_list->field = field;
 	new_field_list->next = NULL;
 
 	return new_field_list;
 }
 
-A_Field make_record(string type_id, A_FieldList field_list, A_Pos position) {
-	A_Field new_record = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_record(string type_id, A_FieldList field_list, A_Pos position, Arena* parserArena) {
+	A_Field new_record = (A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
+
 	new_record->kind = Record; 
 	new_record->position = position;
 	new_record->u.record_field.type_id = strdup(type_id);
 	new_record->u.record_field.record_def_fields = field_list;
 	return new_record;
 }
-A_Field make_array_field(string type_id, A_Pos position) {
-	A_Field new_array_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_array_field(string type_id, A_Pos position, Arena* parserArena) {
+	A_Field new_array_field = (A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
 	new_array_field->kind = Array_Field;
 	new_array_field->position = position;
 
@@ -176,8 +261,13 @@ A_Field make_array_field(string type_id, A_Pos position) {
 	
 	return new_array_field;
 }
-A_Field make_ref_field(A_Exp left_id, A_Exp right_id, A_Pos position) {
-	A_Field new_ref_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_ref_field(A_Exp left_id, A_Exp right_id, A_Pos position, Arena* parserArena) {
+	A_Field new_ref_field = (A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
+
 	new_ref_field->kind = Ref_Field;
 	new_ref_field->position = position;
 	
@@ -186,8 +276,13 @@ A_Field make_ref_field(A_Exp left_id, A_Exp right_id, A_Pos position) {
 
 	return new_ref_field;
 }
-A_Field make_item_field(string id, A_Exp value, A_Pos position) {
-	A_Field new_item_field = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_item_field(string id, A_Exp value, A_Pos position, Arena* parserArena) {
+	A_Field new_item_field = (A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
+
 	new_item_field->kind = Item_Field;
 	new_item_field->position = position;
 
@@ -196,16 +291,26 @@ A_Field make_item_field(string id, A_Exp value, A_Pos position) {
 
 	return new_item_field;
 }
-A_Field make_ty_record(A_FieldList field_list, A_Pos position) {
-	A_Field new_ty_record = (A_Field)checked_malloc(sizeof(struct A_Field_));
+A_Field make_ty_record(A_FieldList field_list, A_Pos position, Arena* parserArena) {
+	A_Field new_ty_record = (A_Field)(A_Field)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Field_),
+                __alignof__(struct A_Field_)
+        );
+
 	new_ty_record->kind = Ty_Record;
 	new_ty_record->position = position;
 
 	new_ty_record->u.type_record_field.record_type_fields = field_list;
 	return new_ty_record;
 }
-A_Exp make_field_exp(A_Field field) {
-	A_Exp new_field_expression = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_field_exp(A_Field field, Arena* parserArena) {
+	A_Exp new_field_expression = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_field_expression->kind = Field_Exp;
 	new_field_expression->position = field->position;
 
@@ -214,8 +319,12 @@ A_Exp make_field_exp(A_Field field) {
 }
 
 
-A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position) {
-	A_Dec new_simple_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position, Arena* parserArena) {
+	A_Dec new_simple_var_dec = (A_Dec)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Dec_),
+                __alignof__(struct A_Dec_)
+        );
 	new_simple_var_dec->kind = Simple_Var_Dec;
 	new_simple_var_dec->position = position;
 
@@ -225,8 +334,13 @@ A_Dec make_simple_var_dec(string id, A_Exp var_val, A_Pos position) {
 	return new_simple_var_dec;
 
 }
-A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
-	A_Dec new_field_var_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position, Arena* parserArena) {
+	A_Dec new_field_var_dec = (A_Dec)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Dec_),
+                __alignof__(struct A_Dec_)
+        );
+
 	new_field_var_dec->kind = Field_Var_Dec;
 	new_field_var_dec->position = position;
 
@@ -236,8 +350,13 @@ A_Dec make_field_var_dec(A_Field type_field, A_Exp var_val, A_Pos position) {
 
 	return new_field_var_dec;
 }
-A_Dec make_type_dec(string name, A_Field def_type_field, A_Pos position) {
-	A_Dec new_type_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+A_Dec make_type_dec(string name, A_Field def_type_field, A_Pos position, Arena* parserArena) {
+	A_Dec new_type_dec = (A_Dec)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Dec_),
+                __alignof__(struct A_Dec_)
+        );
+
 	new_type_dec->kind = Type_Dec;
 	new_type_dec->position = position;
 
@@ -248,8 +367,13 @@ A_Dec make_type_dec(string name, A_Field def_type_field, A_Pos position) {
 
 }
 
-A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position) {
-	A_Dec new_func_dec = (A_Dec)checked_malloc(sizeof(struct A_Dec_));
+A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_Pos position, Arena* parserArena) {
+	A_Dec new_func_dec = (A_Dec)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Dec_),
+                __alignof__(struct A_Dec_)
+        );
+
 	new_func_dec->kind = Func_Dec;
 	new_func_dec->position = position;
 
@@ -261,15 +385,25 @@ A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_P
 	return new_func_dec;
 }
 
-A_DecList make_dec_list(A_Dec declaration) {
-	A_DecList new_dec_list = (A_DecList)checked_malloc(sizeof(struct A_DecList_));
+A_DecList make_dec_list(A_Dec declaration, parserArena) {
+	A_DecList new_dec_list = (A_DecList)Arena_allocArena(
+		parserArena,
+		sizeof(struct A_DecList_),
+		__alignof__(struct A_DecList_)
+	);
+
 	new_dec_list->dec = declaration;
 	new_dec_list->next = NULL;
 	return new_dec_list;
 }
 
-A_Exp make_while_exp(A_Exp while_cond, A_Exp block, A_Pos position) {
-	A_Exp new_while_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_while_exp(A_Exp while_cond, A_Exp block, A_Pos position, Arena* parserArena) {
+	A_Exp new_while_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_while_exp->kind = While_Exp;
 	new_while_exp->position = position;
 
@@ -279,8 +413,12 @@ A_Exp make_while_exp(A_Exp while_cond, A_Exp block, A_Pos position) {
 	return new_while_exp;
 }
 
-A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position) {
-	A_Exp new_if_chain = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, Arena* parserArena) {
+	A_Exp new_if_chain = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
 
 	new_if_chain->kind = If_Exp;
 	new_if_chain->position = position;
@@ -292,11 +430,14 @@ A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position) {
 	return new_if_chain;
 }
 
-A_Exp make_seq_exp(A_ExpList exp_list) {
+A_Exp make_seq_exp(A_ExpList exp_list, Arena* parserArena) {
 
+	A_Exp new_seq_exp = (A_Exp)(A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
 
-
-	A_Exp new_seq_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
 	new_seq_exp->kind = Seq_Exp;
 	if (exp_list == NULL || exp_list->exp == NULL) {
 		new_seq_exp->position = make_pos(0, 0);
@@ -310,8 +451,12 @@ A_Exp make_seq_exp(A_ExpList exp_list) {
 	return new_seq_exp;
 }
 
-A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2) {
-	A_Stm new_compound_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2, Arena* parserArena) {
+	A_Stm new_compound_stm = (A_Stm)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Stm_),
+                __alignof__(struct A_Stm_)
+        );
 	
 	new_compound_stm->kind = Compound_Stm;
 	new_compound_stm->position = stm1->position;
@@ -322,8 +467,13 @@ A_Stm make_compound_stm(A_Stm stm1, A_Stm stm2) {
 	return new_compound_stm;
 }
 
-A_Exp make_assign_exp(A_Exp identifier, A_Exp exp) {
-	A_Exp new_assign_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_assign_exp(A_Exp identifier, A_Exp exp, Arena* parserArena) {
+	A_Exp new_assign_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_assign_exp->kind = Assign_Exp;
 	new_assign_exp->position = identifier->position;
 
@@ -333,10 +483,15 @@ A_Exp make_assign_exp(A_Exp identifier, A_Exp exp) {
         return new_assign_exp;
 }
 
-A_Stm make_expression_stm(A_Exp exp) {
+A_Stm make_expression_stm(A_Exp exp, Arena* parserArena) {
 	if (exp == NULL)
 		return NULL;
-	A_Stm new_expression_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+	A_Stm new_expression_stm = (A_Stm)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Stm_),
+                __alignof__(struct A_Stm_)
+        );
+
 	new_expression_stm->kind = Exp_Stm;
 	
 	new_expression_stm->position = exp->position;
@@ -346,8 +501,13 @@ A_Stm make_expression_stm(A_Exp exp) {
 	return new_expression_stm;
 }
 
-A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos position) {
-	A_Exp new_for_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos position, Arena* parserArena) {
+	A_Exp new_for_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_for_exp->kind = For_Exp;
 	new_for_exp->position = position;
 
@@ -359,8 +519,13 @@ A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos posit
 	return new_for_exp;
 }
 
-A_Exp make_let_exp(A_DecList dec_stms, A_Exp block, A_Pos position) {
-	A_Exp new_let_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_let_exp(A_DecList dec_stms, A_Exp block, A_Pos position, Arena* parserArena) {
+	A_Exp new_let_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_let_exp->kind = Let_Exp;
 	new_let_exp->position = position;
 
@@ -371,22 +536,36 @@ A_Exp make_let_exp(A_DecList dec_stms, A_Exp block, A_Pos position) {
 }
 
 
-A_Exp make_break_exp(A_Pos position) {
-	A_Exp new_break_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_break_exp(A_Pos position, Arena* parserArena) {
+	A_Exp new_break_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
 	new_break_exp->kind = Break_Exp;
 	new_break_exp->position = position;
 
 	return new_break_exp;
 }
-A_Exp make_continue_exp(A_Pos position) {
-	A_Exp new_continue_exp = (A_Exp)checked_malloc(sizeof(struct A_Exp_));
+A_Exp make_continue_exp(A_Pos position, Arena* parserArena) {
+	A_Exp new_continue_exp = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Exp_),
+                __alignof__(struct A_Exp_)
+        );
+
 	new_continue_exp->kind = Continue_Exp;
 	new_continue_exp->position = position;
 
 	return new_continue_exp;
 }
-A_Stm make_declaration_stm(A_Dec dec) {
-	A_Stm new_declaration_stm = (A_Stm)checked_malloc(sizeof(struct A_Stm_));
+A_Stm make_declaration_stm(A_Dec dec, Arena* parserArena) {
+	A_Stm new_declaration_stm = (A_Exp)Arena_allocArena(
+                parserArena,
+                sizeof(struct A_Stm_),
+                __alignof__(struct A_Stm_)
+        );
+
 	new_declaration_stm->kind = Decl_Stm;
 	new_declaration_stm->position = dec->position;
 
@@ -410,7 +589,7 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 
 	A_Exp current_exp = parse_expression(lexer, parser);
 	
-	A_ExpList head = make_exp_list(current_exp);
+	A_ExpList head = make_exp_list(current_exp, &(parser->parserArena));
 	A_ExpList tail = head;
 	Token current_token = peek(lexer->queue);
 	while (TRUE) {
@@ -433,7 +612,7 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 		if (next == NULL)
 			break;
 
-		tail->next = make_exp_list(next);
+		tail->next = make_exp_list(next, &(parser->parserArena));
 		tail = tail->next;
 	}
 	return head;
@@ -474,7 +653,7 @@ A_Field parse_field(Lexer lexer, Parser parser) {
 		current_token = peek(lexer->queue);
 		string type_id = strdup(current_token->input);
 		eat_token(lexer->queue);
-		current_field = make_type_field(id, type_id, position);
+		current_field = make_type_field(id, type_id, position, parser);
 	}
 	else if (match(current_token, EQ) == TRUE) {
 		eat_token(lexer->queue);
