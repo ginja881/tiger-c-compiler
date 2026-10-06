@@ -26,7 +26,7 @@ Token make_token(
 
 Lexer make_lexer() {
        Lexer lexer = (Lexer)checked_malloc(sizeof(struct Lexer_));
-       lexer->lexicalArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY);
+       lexer->lexicalArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY, NULL);
        lexer->queue = (TokenQueue)Arena_allocArena(
        	&(lexer->lexicalArena), 
 	sizeof(struct TokenQueue_), 

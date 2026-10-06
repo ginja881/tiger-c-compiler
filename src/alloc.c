@@ -6,7 +6,7 @@ void* checked_malloc(size_t bytes) {
    assert(newData);
    return newData;
 }
-Arena Arena_makeArena(Arena next, size_t capacity) {
+Arena Arena_makeArena(size_t capacity, Arena next) {
    Arena newArena = (Arena)checked_malloc(sizeof(struct Arena_));
    newArena->buffer = (unsigned char*)checked_malloc(capacity);
    newArena->bufferCapacity = capacity;
@@ -35,24 +35,19 @@ void* Arena_allocArena(Arena* arena, size_t dataSize, size_t alignment) {
     size_t overallSize = paddingBytes + dataSize;
 
     if (overallSize > DEFAULT_ARENA_CAPACITY) {
-        (*arena) = Arena_makeArena((*arena), overallSize);
+        (*arena) = Arena_makeArena(overallSize, (*arena));
 	(*arena)->allocatedBytes = overallSize;
 	return (*arena)->buffer;
     }
 
     
     if (dataSize > ((*arena)->bufferCapacity - (*arena)->allocatedBytes)) {
-         (*arena) = Arena_makeArena((*arena), DEFAULT_ARENA_CAPACITY);
+         (*arena) = Arena_makeArena(DEFAULT_ARENA_CAPACITY, (*arena));
 	 (*arena)->allocatedBytes = overallSize;
 	 return (*arena)->buffer;
     }
     
-    void* data;
-    memcpy(
-    	(*arena)->buffer + (*arena)->allocatedBytes, 
-	data,
-	overallSize
-    );
+    void* data = (*arena)->buffer + (*arena)->allocatedBytes;
     (*arena)->allocatedBytes += overallSize;
 
     return data;

@@ -203,7 +203,7 @@ extern int panic_mode;
 // Constructors
 Parser make_parser(void);
 
-A_Pos make_pos(size_t line_pos, size_t col_pos);
+A_Pos make_pos(size_t line_pos, size_t col_pos, Arena* parserArena);
 
 A_Exp make_id_exp(string id, A_Pos position, Arena* parserArena);
 A_Exp make_num_exp(int num, A_Pos position, Arena* parserArena);
@@ -225,7 +225,7 @@ A_Exp make_for_exp(A_Exp low_id, A_Exp low, A_Exp high, A_Exp block, A_Pos posit
 A_Exp make_while_exp(A_Exp cond, A_Exp block, A_Pos position, Arena* parserArena);
 A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position, Arena* parserArena);
 A_Exp make_let_exp(A_DecList declarations, A_Exp block, A_Pos position, Arena* parserArena);
-A_Exp make_seq_exp(A_ExpList exp_list, Arena parserArena);
+A_Exp make_seq_exp(A_ExpList exp_list, Arena* parserArena);
 
 A_Field make_subscript_field(string id, A_Exp loc, A_Pos position, Arena* parserArena);
 A_Field make_type_field(string id, string type, A_Pos position, Arena* parserArena);

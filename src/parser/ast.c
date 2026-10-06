@@ -6,7 +6,7 @@ Parser make_parser(void) {
       new_parser->root = NULL;
       new_parser->current_stm = -1;
       new_parser->panic_mode = FALSE;
-      new_parser->parserArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY);
+      new_parser->parserArena = Arena_makeArena(DEFAULT_ARENA_CAPACITY, NULL);
 
       return new_parser;
 }
@@ -115,7 +115,7 @@ A_ExpList make_exp_list(A_Exp exp, Arena* parserArena) {
 	A_ExpList new_exp_list = (A_ExpList)Arena_allocArena(
 		parserArena,
 		sizeof(struct A_ExpList_),
-		__alignof__(struct A_Exp)
+		__alignof__(struct A_Exp_)
 	);
 
 	new_exp_list->exp = exp;
@@ -127,7 +127,7 @@ A_Exp make_unary_exp(A_Op op, A_Exp exp, int post_fix, A_Pos position, Arena* pa
 	A_Exp new_unary_exp = (A_Exp)Arena_allocArena(
 		parserArena,
 		sizeof(struct A_Exp_),
-		__alignof__(struct A_Exp)
+		__alignof__(struct A_Exp_)
 	);
 
 	new_unary_exp->kind = Unary_Exp;
@@ -144,7 +144,7 @@ A_Exp make_op_exp(A_Op op, A_Exp exp1, A_Exp exp2, Arena* parserArena) {
 	A_Exp new_op_exp = (A_Exp)Arena_allocArena(
                 parserArena,
                 sizeof(struct A_Exp_),
-                __alignof__(struct A_Exp)
+                __alignof__(struct A_Exp_)
         );
 	new_op_exp->kind = Op_Exp;
         new_op_exp->position = exp1->position;
@@ -160,7 +160,7 @@ A_Exp make_callee_exp(string id, A_ExpList args, A_Pos position, Arena* parserAr
 	A_Exp callee_exp = (A_Exp)Arena_allocArena(
                 parserArena,
                 sizeof(struct A_Exp_),
-                __alignof__(struct A_Exp)
+                __alignof__(struct A_Exp_)
         );
 
 	callee_exp->kind = Callee_Exp;
@@ -176,7 +176,7 @@ A_Exp make_array_exp(string type_id, A_Exp size, A_Exp init, A_Pos position, Are
 	A_Exp new_array_exp = (A_Exp)Arena_allocArena(
                 parserArena,
                 sizeof(struct A_Exp_),
-                __alignof__(struct A_Exp)
+                __alignof__(struct A_Exp_)
         );
 
 	new_array_exp->kind = Array_Exp;
@@ -385,7 +385,7 @@ A_Dec make_func_dec(string name, A_FieldList args, string type, A_Exp block, A_P
 	return new_func_dec;
 }
 
-A_DecList make_dec_list(A_Dec declaration, parserArena) {
+A_DecList make_dec_list(A_Dec declaration, Arena* parserArena) {
 	A_DecList new_dec_list = (A_DecList)Arena_allocArena(
 		parserArena,
 		sizeof(struct A_DecList_),
@@ -413,7 +413,7 @@ A_Exp make_while_exp(A_Exp while_cond, A_Exp block, A_Pos position, Arena* parse
 	return new_while_exp;
 }
 
-A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, Arena* parserArena) {
+A_Exp make_if_exp(A_Exp cond, A_Exp then, A_Exp else_branch, A_Pos position, Arena* parserArena) {
 	A_Exp new_if_chain = (A_Exp)Arena_allocArena(
                 parserArena,
                 sizeof(struct A_Exp_),
@@ -440,7 +440,7 @@ A_Exp make_seq_exp(A_ExpList exp_list, Arena* parserArena) {
 
 	new_seq_exp->kind = Seq_Exp;
 	if (exp_list == NULL || exp_list->exp == NULL) {
-		new_seq_exp->position = make_pos(0, 0);
+		new_seq_exp->position = make_pos(0, 0, parserArena);
 		new_seq_exp->u.seq_exp.exp_list = NULL;
 	}
 	else {
@@ -560,7 +560,7 @@ A_Exp make_continue_exp(A_Pos position, Arena* parserArena) {
 	return new_continue_exp;
 }
 A_Stm make_declaration_stm(A_Dec dec, Arena* parserArena) {
-	A_Stm new_declaration_stm = (A_Exp)Arena_allocArena(
+	A_Stm new_declaration_stm = (A_Stm)Arena_allocArena(
                 parserArena,
                 sizeof(struct A_Stm_),
                 __alignof__(struct A_Stm_)
@@ -619,7 +619,7 @@ A_ExpList parse_explist(Lexer lexer, Parser parser, token delimiter) {
 }
 A_Field parse_field(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, &(parser->parserArena));
 	A_Field current_field = NULL;
 	if (match(current_token, ID) == FALSE) {
 		report_error(
@@ -653,13 +653,13 @@ A_Field parse_field(Lexer lexer, Parser parser) {
 		current_token = peek(lexer->queue);
 		string type_id = strdup(current_token->input);
 		eat_token(lexer->queue);
-		current_field = make_type_field(id, type_id, position, parser);
+		current_field = make_type_field(id, type_id, position, &(parser->parserArena));
 	}
 	else if (match(current_token, EQ) == TRUE) {
 		eat_token(lexer->queue);
 		
 		A_Exp value = parse_expression(lexer, parser);
-		current_field = make_item_field(id, value, position);
+		current_field = make_item_field(id, value, position, &(parser->parserArena));
 	}
 	else {
 		report_error(
@@ -682,7 +682,7 @@ A_FieldList parse_fieldlist(Lexer lexer, Parser parser, token delimiter) {
 	if (field == NULL)
 		return NULL;
 
-	A_FieldList head = make_field_list(field);
+	A_FieldList head = make_field_list(field, &(parser->parserArena));
 	A_FieldList field_list = head;
 	while (TRUE) {
 		Token current_token = peek(lexer->queue);
@@ -698,7 +698,7 @@ A_FieldList parse_fieldlist(Lexer lexer, Parser parser, token delimiter) {
 		if (field == NULL)
 			break;
 
-		field_list->next = make_field_list(field);
+		field_list->next = make_field_list(field, &(parser->parserArena));
 		field_list = field_list->next;
 		eat_lines(lexer, parser);	
 	}
@@ -711,19 +711,19 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 	A_Exp current_exp = NULL;
 	if (current_token == NULL)
 		return NULL;
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, &(parser->parserArena));
 
 	printf("\nPrimary Input: %s \n", current_token->input);
 	if (match(current_token, NUM) == TRUE) {
-		current_exp = make_num_exp(atoi(current_token->input), position);
+		current_exp = make_num_exp(atoi(current_token->input), position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, STRING_VAL) == TRUE) {
-		current_exp = make_string_exp(current_token->input, position);
+		current_exp = make_string_exp(current_token->input, position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, CHAR) == TRUE) {
-		current_exp = make_char_exp(current_token->input[0], position);
+		current_exp = make_char_exp(current_token->input[0], position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, BREAK) == TRUE) {
@@ -737,7 +737,7 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
-		current_exp = make_break_exp(position);
+		current_exp = make_break_exp(position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, CONTINUE) == TRUE) {
@@ -751,23 +751,23 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
-		current_exp = make_continue_exp(position);
+		current_exp = make_continue_exp(position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, FALSE_VAL) == TRUE) {
-		current_exp = make_bool_exp(FALSE, position);
+		current_exp = make_num_exp(FALSE, position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, TRUE_VAL) == TRUE) {
-		current_exp = make_bool_exp(TRUE, position);
+		current_exp = make_num_exp(TRUE, position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, NULL_VAL) == TRUE) {
-		current_exp = make_nil_exp(position);
+		current_exp = make_nil_exp(position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, ID) == TRUE) {	
-	     	current_exp = make_id_exp(current_token->input, position);
+	     	current_exp = make_id_exp(current_token->input, position, &(parser->parserArena));
 		eat_token(lexer->queue);
 	}
 	else if (match(current_token, L_PAREN) == TRUE) {
@@ -790,11 +790,11 @@ A_Exp parse_primary(Lexer lexer, Parser parser) {
 		}
 		eat_token(lexer->queue);
 		if (exp_list == NULL)
-			return make_seq_exp(NULL);
+			return make_seq_exp(NULL, &(parser->parserArena));
 		if (exp_list->next == NULL)
 			return exp_list->exp;
 
-		current_exp = make_seq_exp(exp_list);
+		current_exp = make_seq_exp(exp_list, &(parser->parserArena));
 		return current_exp;
 	}
 	
@@ -804,7 +804,7 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	if (current_token == NULL)
 		return NULL;
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, &(parser->parserArena));
 	// Array Field Production
 	if (match(current_token, ARRAY) == TRUE) {
 		eat_token(lexer->queue);
@@ -837,8 +837,10 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 		return make_field_exp(
 			make_array_field(
 				id,
-				position
-			)
+				position,
+				&(parser->parserArena)
+			),
+			&(parser->parserArena)
 		);
 	
 	}
@@ -861,8 +863,10 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 		return make_field_exp(
 			make_ty_record(
 				record_ty_fields,
-				position
-			)
+				position,
+				&(parser->parserArena)
+			),
+			&(parser->parserArena)
 		);
 		
 	}
@@ -890,12 +894,13 @@ A_Exp parse_data_structure(Lexer lexer, Parser parser) {
 			if (match(current_token, OF) == FALSE) {
 				
 				return make_field_exp(
-					make_subscript_field(id, init, position)
+					make_subscript_field(id, init, position, &(parser->parserArena)),
+					&(parser->parserArena)
 				);
 			}
 			eat_token(lexer->queue);
 			A_Exp size = parse_term(lexer, parser);
-                        return make_array_exp(id, size, init, position);
+                        return make_array_exp(id, size, init, position, &(parser->parserArena));
 
 		}
 		
@@ -941,7 +946,7 @@ A_Exp parse_unary(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 	      }
-	      current_exp = make_unary_exp(operation, current_exp, FALSE, current_exp->position);
+	      current_exp = make_unary_exp(operation, current_exp, FALSE, current_exp->position, &(parser->parserArena));
 	     
 	      return current_exp;
 	}
@@ -958,11 +963,11 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 
 	if (match(current_token, INCREMENT) == TRUE) {
 		eat_token(lexer->queue);
-		current_exp = make_unary_exp(OP_INCREMENT, current_exp, TRUE, current_exp->position);
+		current_exp = make_unary_exp(OP_INCREMENT, current_exp, TRUE, current_exp->position, &(parser->parserArena));
 	}
 	else if (match(current_token, DECREMENT) == TRUE) {
 		eat_token(lexer->queue);
-		current_exp = make_unary_exp(OP_DECREMENT, current_exp, TRUE, current_exp->position);
+		current_exp = make_unary_exp(OP_DECREMENT, current_exp, TRUE, current_exp->position, &(parser->parserArena));
 	}
         else if (left->kind == ID_Exp) {
 	        string id = left->u.id_exp.identifier;
@@ -987,7 +992,8 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
                         
 			eat_token(lexer->queue);
 			current_exp = make_field_exp(
-				make_subscript_field(id, loc_exp, left->position)
+				make_subscript_field(id, loc_exp, left->position, &(parser->parserArena)),
+				&(parser->parserArena)
 			);
 		}
 		else if (match(current_token, L_PAREN) == TRUE) {
@@ -1009,7 +1015,7 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 			}
 
 			eat_token(lexer->queue);
-			current_exp = make_callee_exp(id, args, left->position);
+			current_exp = make_callee_exp(id, args, left->position, &(parser->parserArena));
 		}
 		else if (match(current_token, L_CURLY_BRCKT) == TRUE) {
 			eat_token(lexer->queue);
@@ -1034,8 +1040,10 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 				make_record(
 					id,
 					record_item_fields,
-					left->position
-				)
+					left->position,
+					&(parser->parserArena)
+				),
+				&(parser->parserArena)
 			);
 			discover_reference = FALSE;
 		}
@@ -1060,8 +1068,10 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 				make_type_field(
 					id,
 					right_exp->u.id_exp.identifier,
-					left->position
-				)
+					left->position,
+					&(parser->parserArena)
+				),
+				&(parser->parserArena)
 			);
 			discover_reference = FALSE;
 		}
@@ -1089,10 +1099,13 @@ A_Exp parse_postfix(Lexer lexer, Parser parser) {
 					make_id_exp(
 						current_token->input, 
 						make_pos(current_token->line_pos,
-						current_token->char_pos)
+						current_token->char_pos, &(parser->parserArena)),
+						&(parser->parserArena)
 					),
-					left->position
-				)
+					left->position,
+					&(parser->parserArena)
+				),
+				&(parser->parserArena)
 			);
 			eat_token(lexer->queue);
 		}
@@ -1120,7 +1133,7 @@ A_Exp parse_bitwise(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
-		left = make_op_exp(op, left, right);
+		left = make_op_exp(op, left, right, &(parser->parserArena));
 		current_token = peek(lexer->queue);
 		op = match_op(current_token);
 	}
@@ -1146,7 +1159,7 @@ A_Exp parse_factor(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
-		left = make_op_exp(op, left, right);
+		left = make_op_exp(op, left, right, &(parser->parserArena));
 		current_token = peek(lexer->queue);
 		op = match_op(current_token);
 	}
@@ -1175,7 +1188,7 @@ A_Exp parse_term(Lexer lexer, Parser parser) {
 		);
 	     }
 
-	     left = make_op_exp(op, left, right);
+	     left = make_op_exp(op, left, right, &(parser->parserArena));
 	     current_token = peek(lexer->queue);
 	     op = match_op(current_token);
 		
@@ -1207,7 +1220,7 @@ A_Exp parse_comparison(Lexer lexer, Parser parser) {
 			);
 		}
 
-		left = make_op_exp(op, left, right);
+		left = make_op_exp(op, left, right, &(parser->parserArena));
 		current_token = peek(lexer->queue);
 		op = match_op(current_token);
 	}
@@ -1236,7 +1249,7 @@ A_Exp parse_logical_and(Lexer lexer, Parser parser) {
 			);
 		}
 
-		left = make_op_exp(op, left, right);
+		left = make_op_exp(op, left, right, &(parser->parserArena));
 		current_token = peek(lexer->queue);
 		op = match_op(current_token); 
 	}
@@ -1265,7 +1278,7 @@ A_Exp parse_logical_or(Lexer lexer, Parser parser) {
 			);
 		}
 
-		left = make_op_exp(op, left, right);
+		left = make_op_exp(op, left, right, &(parser->parserArena));
 		current_token = peek(lexer->queue);
 		op = match_op(current_token);
 	}
@@ -1307,14 +1320,14 @@ A_Exp parse_assign(Lexer lexer, Parser parser) {
 			return left;
 		}
 
-		left = make_assign_exp(left, right);
+		left = make_assign_exp(left, right, &(parser->parserArena));
 	}
 
 	return left;
 }
 A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, &(parser->parserArena));
 	
 
 	if (match(current_token, WHILE) == TRUE) {
@@ -1339,7 +1352,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		parser->current_stm = While_Exp;
 
 		A_Exp block = parse_expression(lexer, parser);
-		return make_while_exp(condition, block, position);		
+		return make_while_exp(condition, block, position, &(parser->parserArena));		
 	}
 	else if (match(current_token, FOR) == TRUE) {
 		eat_token(lexer->queue);
@@ -1355,7 +1368,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 				panic_mode
 			);
 		}
-		A_Exp low_id_exp = make_id_exp(current_token->input, position);
+		A_Exp low_id_exp = make_id_exp(current_token->input, position, &(parser->parserArena));
 		eat_token(lexer->queue);
 		current_token = peek(lexer->queue);
 		if (match(current_token, ASSIGN) == FALSE) {
@@ -1409,7 +1422,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		eat_lines(lexer, parser);
 		parser->current_stm = For_Exp;
 		A_Exp block = parse_expression(lexer, parser);
-		return make_for_exp(low_id_exp, low, high, block, position);
+		return make_for_exp(low_id_exp, low, high, block, position, &(parser->parserArena));
 	}
 	else if (match(current_token, IF) == TRUE) {
 		eat_token(lexer->queue);
@@ -1440,7 +1453,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 			eat_token(lexer->queue);
 			else_branch = parse_expression(lexer, parser);
 		}
-		return make_if_exp(conditional, block, else_branch, position);
+		return make_if_exp(conditional, block, else_branch, position, &(parser->parserArena));
 	}
         else if (match(current_token, LET) == TRUE) {
 		eat_token(lexer->queue);
@@ -1474,11 +1487,11 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 			A_Exp current_exp = parse_expression(lexer, parser); 
 
 			if (block_list == NULL) {
-				block_list = make_exp_list(current_exp);
+				block_list = make_exp_list(current_exp, &(parser->parserArena));
 				tail = block_list;
 			}
 			else {
-				tail->next = make_exp_list(current_exp);
+				tail->next = make_exp_list(current_exp, &(parser->parserArena));
 				tail = tail->next;
 			}
 			
@@ -1487,7 +1500,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 			eat_lines(lexer, parser);
 			current_token = peek(lexer->queue);
 		}
-		A_Exp block = make_seq_exp(block_list);
+		A_Exp block = make_seq_exp(block_list, &(parser->parserArena));
 
 		current_token = peek(lexer->queue);
 		if (match(current_token, END) == FALSE) {
@@ -1502,7 +1515,7 @@ A_Exp parse_control_exp(Lexer lexer, Parser parser) {
 		} 
 		eat_token(lexer->queue);
 
-		return make_let_exp(declaration_list_head, block, position);
+		return make_let_exp(declaration_list_head, block, position, &(parser->parserArena));
 
 	}
 	return parse_assign(lexer, parser);
@@ -1566,10 +1579,10 @@ A_DecList parse_declarations(Lexer lexer, Parser parser) {
 		if (declaration == NULL)
 			break;
 		if (head == NULL) {
-			head = make_dec_list(declaration);
+			head = make_dec_list(declaration, &(parser->parserArena));
 			tail = head;
 		} else {
-			tail->next = make_dec_list(declaration);
+			tail->next = make_dec_list(declaration, &(parser->parserArena));
 			tail = tail->next;
 		}
 		eat_lines(lexer, parser);
@@ -1581,7 +1594,7 @@ A_DecList parse_declarations(Lexer lexer, Parser parser) {
 A_Dec parse_declaration(Lexer lexer, Parser parser) {
 	Token current_token = peek(lexer->queue);
 	A_Dec current_declaration = NULL;
-	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos);
+	A_Pos position = make_pos(current_token->line_pos, current_token->char_pos, &(parser->parserArena));
 
 	if (match(current_token, VAR_DEC) == TRUE) {
 		eat_token(lexer->queue);
@@ -1622,14 +1635,16 @@ A_Dec parse_variable(Lexer lexer, Parser parser, A_Pos position) {
 			current_declaration = make_simple_var_dec(
 				id->u.id_exp.identifier,
 				val,
-				position
+				position,
+				&(parser->parserArena)
 			);
 		}
 		else if (id->kind == Field_Exp && id->u.field_exp.field->kind == Ty_Field) {
 			current_declaration = make_field_var_dec(
 				id->u.field_exp.field,
 				val,
-				position
+				position,
+				&(parser->parserArena)
 			);
 		}
 		else {
@@ -1704,9 +1719,11 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
                         make_type_field(
 				type_val->u.id_exp.identifier,
 				"",
-				type_val->position
+				type_val->position,
+				&(parser->parserArena)
 			),
-			position
+			position,
+			&(parser->parserArena)
 
 		);
 	}
@@ -1714,7 +1731,8 @@ A_Dec parse_type(Lexer lexer, Parser parser, A_Pos position) {
 		current_declaration = make_type_dec(
 			id->u.id_exp.identifier,
 			type_val->u.field_exp.field,
-			position
+			position,
+			&(parser->parserArena)
 		);
 	}
 
@@ -1790,7 +1808,7 @@ A_Dec parse_function_dec(Lexer lexer, Parser parser, A_Pos position) {
 	eat_token(lexer->queue);
 	eat_lines(lexer, parser);
 	A_Exp block = parse_expression(lexer, parser);
-	return make_func_dec(id, args,type_id, block, position);
+	return make_func_dec(id, args,type_id, block, position, &(parser->parserArena));
 }
 void eat_lines(Lexer lexer, Parser parser) {
 	while (peek(lexer->queue) != NULL && match(peek(lexer->queue), NEW_LINE) == TRUE)
@@ -1808,7 +1826,7 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
 		match(current_token, TYPE_DEC) == TRUE || 
 		match(current_token, FUNCTION_DEF) == TRUE) {
 		A_Dec declaration = parse_declaration(lexer, parser);
-		return make_declaration_stm(declaration);
+		return make_declaration_stm(declaration, &(parser->parserArena));
 	}
 	else {
 		A_Exp exp = parse_expression(lexer, parser);
@@ -1816,7 +1834,7 @@ A_Stm parse_stm(Lexer lexer, Parser parser) {
 			eat_token(lexer->queue);
 			return NULL;
 		}
-		return make_expression_stm(exp);
+		return make_expression_stm(exp, &(parser->parserArena));
 	 	
 	}
 	return NULL;
@@ -1838,7 +1856,7 @@ A_Stm parse_program(Lexer lexer, Parser parser) {
 		if (root == NULL)
 			root = parsed_stm;
 		else
-			root = make_compound_stm(root, parsed_stm);
+			root = make_compound_stm(root, parsed_stm, &(parser->parserArena));
 	}
 	return root;
 }

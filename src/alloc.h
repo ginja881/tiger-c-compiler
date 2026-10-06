@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <memory.h>
+#include <assert.h>
 
 typedef struct Arena_* Arena;
 
@@ -18,7 +19,7 @@ struct Arena_ {
 
 void* checked_malloc(size_t bytes);
 
-Arena Arena_makeArena(Arena next);
+Arena Arena_makeArena(size_t capacity, Arena next);
 void Arena_freeArena(Arena arenaHead);
 void* Arena_allocArena(Arena* arenaHead, size_t dataSize, size_t alignment);
 

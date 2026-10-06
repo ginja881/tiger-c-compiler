@@ -23,7 +23,8 @@ int main(int argc, char* argv[]) {
 			lexer->current_pos,
 			lexer->current_input_size,
 			String(lexer->current_input),
-			token
+			token,
+			lexer
 		);
 		enqueue_token(lexer->queue, new_token);
 		if (new_token->token_type == NEW_LINE) {
